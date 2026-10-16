@@ -1,0 +1,12 @@
+* text=auto
+.gitignore text eol=lf
+.gitattributes text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.woff2 binary
