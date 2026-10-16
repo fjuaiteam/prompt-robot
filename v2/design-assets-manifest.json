@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "direction": "沿用 v1 的 Neutral 黑白視覺、Lucide 圖示與本機字型。採用上一輪 UX 檢視的任務入口、一次一題與確認答案原則。",
+  "references": [
+    {"url":"https://design-system.service.gov.uk/patterns/question-pages/","use":"一次處理一件事、清楚上下步","copiedCode":false},
+    {"url":"https://design-system.service.gov.uk/patterns/check-answers/","use":"完成前摘要與直接修改","copiedCode":false},
+    {"url":"https://www.w3.org/WAI/WCAG2/supplemental/patterns/o1p03-consistent-design/","use":"一致的控制位置","copiedCode":false}
+  ],
+  "assets": [{
+    "path":"assets/illustrations/style-comparison.png",
+    "source":"內建 ImageGen 生成的單張 2x2 畫風比較圖",
+    "date":"2026-10-16",
+    "use":"同場景的蠟筆、卡通、線條、水彩成品示例",
+    "prompt":"Exactly a 2 by 2 grid of four equal square panels, no gutters, borders, text or watermark. Same adult East Asian person with short black hair, muted red shirt, dark blue trousers, white shoes, seated full body on a park bench, rounded green tree on left, ivory background. Top left soft crayon/colored pencil grain; top right flat cartoon dark outlines; bottom left simple line illustration; bottom right light watercolor. Realistic adult proportions, generous inner margins, same framing.",
+    "license":"AI 生成素材供本專案使用；不代表整體專案授權變更。"
+  }],
+  "dependenciesAdded":[]
+}

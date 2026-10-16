@@ -1,0 +1,40 @@
+易學版人物照片：來源與授權
+更新日期：2026-10-05
+
+用途：男生／女生，以及小孩／青少年／大人／長輩選項的示意照片。
+照片只作選項說明，不表示照片人物使用或推薦本平台。
+年齡文字是選項分類，不是照片人物經查證的實際年齡。
+圖片不是生成作品的參考人臉；生成指令仍依使用者選的內容組合。
+
+以下照片取自 Pexels，適用 Pexels License。
+官方授權：https://www.pexels.com/license/
+可免費用於網站、應用程式和教材，可修改；不要求署名。
+不得暗示人物代言，不得使可辨識人物處於冒犯或負面情境，
+不得以未修改的照片直接販售，也不得轉售為圖庫。
+詳細條款以官方授權頁為準。
+
+本地檔案／攝影者／原始作品頁：
+
+photo-boy.jpg（男生、小孩）
+Kimy Moto
+https://www.pexels.com/photo/portrait-of-smiling-boy-20189738/
+
+photo-girl.jpg（女生；亞洲小女孩示意，作品標題為 Cute Asian little girl at home）
+Monstera Production
+https://www.pexels.com/photo/cute-asian-little-girl-at-home-5063380/
+
+photo-teen.jpg（青少年）
+Phi Long
+https://www.pexels.com/photo/portrait-of-teenager-wearing-an-uniform-21006296/
+
+photo-adult.jpg（大人）
+Sandro Tavares
+https://www.pexels.com/photo/portrait-of-an-adult-man-smiling-17824398/
+
+photo-older.jpg（長輩）
+Anastasia Shuraeva
+https://www.pexels.com/photo/photo-of-an-elderly-woman-in-a-white-top-5704847/
+
+下載版本：Pexels 圖片服務提供的 480 × 480 方形 JPEG，壓縮後本地保存。
+不需連線即可顯示；缺少照片時會退回原本的 ARASAAC 圖卡。
+原圖卡的 CC BY-NC-SA 授權仍適用，見「圖片來源與授權.txt」。

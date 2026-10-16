@@ -1,0 +1,1372 @@
+/* ============================================================
+   兒童讀物提示詞機器人 — 介面樣式
+   ------------------------------------------------------------
+   設計立場：像一本印得好的書，不是一個 SaaS landing page。
+   內容是教人做給孩子和身心障礙者看的讀物，介面本身就該讓人想坐下來讀。
+
+   配色：暖紙、墨藍（2026-09 改版，之前的第二色是磚紅 #a8542f）
+   ・紙與墨      色相 35 度上下的暖色。米白書紙、暖黑帶褐，不是純白配藍黑。
+                 更早之前整組灰階落在 215 度（藍），被回饋「太冷」才改暖，
+                 所以這次只換第二色，紙與墨維持暖的，不走回藍灰。
+   ・第二色      深墨藍 #1d4f8a。像米色紙印深藍油墨：紙是暖的、字是冷的，
+                 冷暖對比撐起整個版面。只給「這是主要動作」和
+                 「你現在選的是這個」兩件事，不當裝飾用。
+   ・為什麼是藍  另外四個顏色已經被語意佔走了（綠＝可以、紅＝不可以、
+                 黃＝注意、螢光黃＝改了哪裡）。第二色選藍，跟這四個
+                 在色相上完全分得開，色弱的人也不會把主要動作看成警告。
+   ・圓角        3px 放到 6px。硬邊會冷，但大圓角卡片牆會廉價
+   ・球體        連線條和落影一起暖化，不然它會在暖紙上發藍
+
+   刻意避開的幾件事（這些才是廉價的「暖」）：
+   ・粉彩漸層、光暈、投影      → 用紙色與線條做層次
+   ・emoji 與插畫小人          → 統一筆畫的 SVG 圖示
+   ・整塊反白的 hover          → 只深一階，滑過一排不會閃
+   ・扁平字級                  → 真正的模組化級距
+
+   對比全部實測過（WCAG 2.1，見檔案最後的註記）：
+   內文 14.9:1、次要 7.6:1、註解 5.1:1、主色對紙 7.5:1、白字壓主色 8.3:1，
+   四組語意色對各自的底都 ≥ 4.5:1。使用者裡有低視能者，這不是選配。
+   ============================================================ */
+
+:root{
+  /* 紙與墨。整組色相在 35 度上下（暖），不是 215 度（藍）。
+     這次換第二色時紙與墨只微調純度，維持暖的。 */
+  --paper:#f7f4ed;      /* 米白書紙 */
+  --paper-2:#ece6da;
+  --hover:#ebe5d9;      /* 滑過：比紙深一階。不反相，反相會整列閃 */
+  --surface:#fffdf8;    /* 暖白，不是純白 */
+  --ink:#241f1b;        /* 暖黑，帶一點褐。對紙 14.9:1 */
+  --ink-2:#554d45;      /* 對紙 7.6:1 */
+  /* 註解字。取值是往下壓到「連滑過的底色也過 4.5:1」為止——
+     說明文字大多在會 hover 的列上，只對紙面達標不夠。
+     對紙 5.4:1、對 hover 底 4.7:1、對 paper-2 4.8:1。 */
+  --ink-3:#6b6359;
+
+  /* 分隔線：介面的主要結構工具 */
+  --rule:#e3dccf;
+  --rule-2:#c8bca9;
+
+  /* 主色：深墨藍。只給「這是主要動作」和「你現在選的是這個」兩件事，
+     不當裝飾用。對紙 7.5:1，白字壓上去 8.3:1，兩邊都遠超過 AA。 */
+  --accent:#1d4f8a;
+  --accent-2:#153a67;   /* 按下去、hover 用的深一階，白字壓上去 11.5:1 */
+  --accent-bg:#e8eef6;
+
+  /* 語意色 —— 只在表達「對／錯／注意」時出現。
+     主色換成藍之後，這三個色相（綠 140／紅 5／黃 40）跟主色（藍 210）
+     兩兩之間都拉得夠開，不會互相誤認。 */
+  --ok:#2f7a4b;     --ok-bg:#eaf3ea;   --ok-rule:#bdd6bc;
+  --bad:#b0322b;    --bad-bg:#fbeeea;  --bad-rule:#eac5bb;
+  --warn:#8a5c0d;   --warn-bg:#fbf2e0; --warn-rule:#e4d1a4;
+
+  /* 字級倍率。整份樣式都用 rem，所以改這一個數字就等比例放大整個介面。
+     內文 pt = 12 × --ui：1=12pt、1.333=16pt、1.667=20pt、2.667=32pt。 */
+  --ui:2.667;
+
+  /* 字級：級距要有真正的落差，靠排版建立層級而不是靠裝飾。
+     --fs-body 刻意等於 1rem，根字級與內文字級一致，pt 換算才不會失真。 */
+  --fs-display:clamp(1.68rem, 3.2vw, 2.19rem);
+  --fs-h1:1.36rem;
+  --fs-h2:1.03rem;
+  --fs-body:1rem;
+  --fs-sm:0.87rem;
+  --fs-xs:0.8rem;
+  --fs-micro:0.71rem;
+
+  /* 圓角：放大一級。3px 太硬，但也不要大圓角卡片——那是廉價感的來源 */
+  --r:6px;
+  --r-lg:12px;
+
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,monospace;
+
+  /* 標題用的明體。思源宋體（Noto Serif TC），Google Fonts 下載到本機，
+     離線可用，SIL 開放字型授權（可商用）。字型檔在 assets\fonts\。
+     載不到的時候會自動退回系統的明體或內文字型，功能完全不受影響。
+     內文維持黑體：書的排法本來就是標題明體、內文黑體。 */
+  --font-display:"Noto Serif TC","Source Han Serif TC","Songti TC","PMingLiU",
+                 "Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei",serif;
+
+  /* 動態：機構感 —— 短、線性、沒有彈跳 */
+  --t-fast:90ms;
+  --t-mid:180ms;
+  color-scheme:light;
+}
+
+*{box-sizing:border-box;}
+/* 用百分比而不是絕對 px：使用者自己在瀏覽器把字調大時，我們是「再乘上去」，
+   不會把他的設定蓋掉（WCAG 1.4.4 Resize Text）。 */
+html{-webkit-text-size-adjust:100%;font-size:calc(var(--ui) * 100%);}
+body{
+  margin:0;
+  font-family:"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei",
+              "PingFang TC","Segoe UI",system-ui,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  font-size:var(--fs-body);
+  line-height:1.9;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+img{max-width:100%;display:block;}
+button{font-family:inherit;font-size:inherit;cursor:pointer;}
+input,textarea,select{font-family:inherit;font-size:inherit;}
+::selection{background:var(--ink);color:var(--paper);}
+
+/* 圖示：整組同一個筆畫粗細 */
+.ico{width:0.9375rem;height:0.9375rem;flex:none;
+  fill:none;stroke:currentColor;stroke-width:1.5;
+  stroke-linecap:round;stroke-linejoin:round;}
+/* Lucide 那套是 24 的格線，筆畫要 1.6 看起來才跟上面 20 格線的 1.5 一樣粗 */
+.ico.lu{stroke-width:1.6;}
+
+/* 捲軸 */
+*{scrollbar-width:thin;scrollbar-color:var(--rule-2) transparent;}
+*::-webkit-scrollbar{width:0.75rem;height:0.75rem;}
+*::-webkit-scrollbar-thumb{background:var(--rule-2);
+  border:4px solid transparent;background-clip:content-box;}
+*::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:content-box;}
+
+/* 焦點：實心方框，像儀器的取景框 */
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:0;}
+
+/* ---------- 骨架 ---------- */
+.app{position:relative;min-height:100vh;}
+.main{max-width:58.75rem;margin:0 auto;padding:0 2.5rem 7.5rem;}
+body.is-home .main{max-width:none;padding:0;}
+
+.view{display:none;}
+.view.on{display:block;}
+
+/* ---------- 頂部：回首頁 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;flex-wrap:wrap;gap:1rem;
+  max-width:58.75rem;margin:0 auto;
+  padding:1.125rem 2.5rem;
+  background:var(--paper);
+  border-bottom:1px solid var(--rule);
+}
+.topbar[hidden]{display:none;}
+.topbar .back{
+  display:inline-flex;align-items:center;gap:0.4375rem;
+  background:none;border:none;padding:0;
+  font-size:var(--fs-sm);font-weight:600;color:var(--ink-2);
+  border-bottom:1px solid transparent;
+  transition:color var(--t-fast) linear,border-color var(--t-fast) linear;
+}
+.topbar .back svg{width:0.9375rem;height:0.9375rem;fill:none;stroke:currentColor;
+  stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+.topbar .back:hover{color:var(--ink);border-bottom-color:var(--ink);}
+.topbar .sep{width:1px;height:0.875rem;background:var(--rule-2);}
+.topbar .uiscale{margin-left:auto;}
+.topbar .crumb{
+  display:inline-flex;align-items:center;gap:0.375rem;
+  font-family:var(--mono);font-size:var(--fs-micro);
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+}
+.topbar .crumb .r-ico{width:0.9375rem;height:0.9375rem;color:var(--accent);}
+
+/* ---------- 字級：AA 按鈕，點開才展開 ----------
+   四個尺寸直接排在報頭上會跟品名搶位置。收成一顆 AA（Safari 閱讀模式的慣例），
+   按鈕本身顯示目前字級，點開才出現分段選擇。有上下限，不跟著 32pt 一起長。 */
+.uiscale{
+  position:relative;
+  font-size:clamp(11px, var(--fs-micro), 19px);
+  letter-spacing:normal;font-weight:400;line-height:1.4;
+}
+.us-btn{
+  display:inline-flex;align-items:baseline;gap:.45em;
+  padding:.3em .7em;
+  border:1px solid var(--rule-2);border-radius:var(--r);
+  background:var(--surface);color:var(--ink-2);
+  font-family:var(--mono);font-size:1em;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear,
+             border-color var(--t-fast) linear;
+}
+.us-btn:hover{background:var(--hover);color:var(--ink);}
+.us-btn[aria-expanded="true"]{border-color:var(--ink-3);color:var(--ink);}
+.us-a1{font-size:.8em;} .us-a2{font-size:1.2em;font-weight:700;margin-left:-.15em;}
+.us-cur{color:var(--ink-3);}
+.us-btn:hover .us-cur,.us-btn[aria-expanded="true"] .us-cur{color:var(--ink-2);}
+
+.us-pop{
+  position:absolute;right:0;top:calc(100% + .5em);z-index:30;
+  min-width:17em;padding:.8em;
+  background:var(--surface);border:1px solid var(--rule-2);border-radius:var(--r);
+}
+.us-pop[hidden]{display:none;}
+.us-l{display:block;margin:0 0 .55em .15em;font-family:var(--mono);
+  letter-spacing:.14em;color:var(--ink-3);}
+/* 分段選擇：外框 3px 圓角、內段 2px，同心 */
+.us-seg{display:flex;padding:2px;background:var(--paper-2);border-radius:var(--r);}
+.us-seg button{
+  flex:1;padding:.4em .5em;
+  font-family:var(--mono);font-size:1em;letter-spacing:.04em;
+  background:transparent;color:var(--ink-2);border:none;border-radius:2px;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear;
+}
+.us-seg button:hover{color:var(--ink);}
+.us-seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);font-weight:700;}
+
+/* ============================================================
+   首頁：封面 ＋ 目錄
+   ------------------------------------------------------------
+   前一版是整頁雙欄：左邊目錄、右邊球體。問題出在切雙欄的條件是
+   容器寬 61em，而 em 會跟著字級長大——16pt 的筆電、或字級調到
+   20pt 以上，條件一律不成立，於是退回單欄，球體整塊橫在標題和
+   目錄中間，一打開只看得到一顆球，真正要點的七個模組全在摺線以下。
+
+   改成書的封面加目錄：
+   ・報頭　品名與副標，一條線接住
+   ・標題區　標題、一句話、兩顆主要動作；球體縮小移到旁邊當配重，
+   　　　　　而且高度用 px／vh，不跟著字級長大
+   ・目錄　　四組分兩欄，一列一個模組，左邊給圖示一個方框
+   字級調到 32pt 時全部自動退回單欄，球體也還在，只是不再擋路。
+   ============================================================ */
+.home-page{
+  min-height:100vh;
+  display:grid;align-content:start;
+  padding:clamp(1.25rem,3.5vh,2.5rem) clamp(1.375rem,4.6vw,4.75rem) clamp(2rem,6vh,4rem);
+  /* 版面要看「這些字放得下嗎」，不是只看視窗有幾 px。
+     @container 條件裡的 em 會跟著 --ui 放大，字級一調大就自動退回單欄。 */
+  container-type:inline-size;
+}
+/* 版面順序：窄的時候（含字級 32pt）是 報頭 → 標題 → 目錄 → 球體 → 註腳，
+   球體讓到目錄後面，因為首頁的主角是那七個模組，球體只是配重。
+   寬的時候球體升到標題右邊，兩邊一起看得到。 */
+.hp-body{
+  width:100%;max-width:75rem;margin:0 auto;
+  display:grid;grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"mark" "say" "index" "orb" "foot";
+}
+.hp-mark {grid-area:mark;}
+.hp-say  {grid-area:say;}
+.hp-index{grid-area:index;}
+.hp-orb  {grid-area:orb;}
+.hp-foot {grid-area:foot;}
+
+/* 報頭：品名不獨立浮在角落，它是這一版面的抬頭，
+   底下那條線跟目錄的分隔線同寬、同色 */
+.hp-mark{
+  display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;
+  gap:0.6rem 1.5rem;
+  padding-bottom:0.75rem;
+  border-bottom:1px solid var(--rule);
+}
+.hp-brand{
+  font-family:var(--font-display);
+  font-size:1.15rem;font-weight:700;letter-spacing:.06em;
+}
+/* 副標用 mono 小字，跟品名拉開層級，不用第二種字級 */
+.hp-brand i{
+  display:inline-block;margin-left:0.75em;font-style:normal;
+  font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.18em;color:var(--ink-3);
+}
+.hp-tools{display:inline-flex;align-items:center;gap:0.6rem;flex-wrap:wrap;}
+
+/* ---------- 標題區 ---------- */
+.hp-say{padding:clamp(1.125rem,3vh,2.25rem) 0 clamp(1rem,2.5vh,1.75rem);}
+.hp-title{
+  margin:0;
+  font-family:var(--font-display);
+  /* 上限 56px：字級切到 32pt 時，標題若照倍率長會變成 72px 以上，
+     在窄螢幕一行只剩四個字。封頂之後標題仍比內文大，但不會壓垮版面。 */
+  font-size:min(clamp(1.75rem,3.2vw,2.5rem), 56px);
+  font-weight:700;line-height:1.35;letter-spacing:.01em;
+}
+.hp-sub{
+  margin:0.875rem 0 0;max-width:32em;
+  font-size:var(--fs-sm);color:var(--ink-2);line-height:1.85;
+}
+.hp-cta{display:flex;flex-wrap:wrap;gap:0.625rem;margin-top:1.0625rem;}
+.hp-cta .btn .ico{width:0.9375rem;height:0.9375rem;}
+.hp-foot{margin:1.25rem 0.5rem 0;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.7;}
+
+/* 球體。它是圖形不是文字，寬高都用 px 封頂，不跟著字級長大——
+   字級切到 32pt 時，22rem 會變成九百多 px，整顆球會把目錄推下去 */
+.hp-orb{position:relative;justify-self:center;align-self:center;
+  width:100%;max-width:min(22rem,360px);margin:clamp(1rem,3vh,2rem) 0 0;}
+.stage{width:100%;height:clamp(150px,26vh,270px);}
+.stage canvas{width:100%;height:100%;display:block;}
+
+.hub-fallback{position:absolute;inset:0;display:none;place-items:center;}
+.hub-fallback.on{display:grid;}
+.hub-fallback .emblem{
+  width:min(52%,15rem);aspect-ratio:1/1;border-radius:50%;
+  border:1px solid var(--rule-2);
+}
+.hp-note{margin:0.75rem auto 0;max-width:34em;text-align:center;
+  font-size:var(--fs-xs);color:var(--ink-3);line-height:1.7;}
+.hp-note[hidden]{display:none;}
+
+/* ---------- 目錄 ---------- */
+.hp-index{
+  display:grid;gap:0 clamp(1.5rem,4vw,3.5rem);
+  border-top:1px solid var(--rule-2);
+}
+.hp-g{
+  margin:0.9375rem 0 0.25rem;padding:0 0.5rem;
+  font-family:var(--mono);font-size:var(--fs-micro);font-weight:500;
+  letter-spacing:.18em;color:var(--ink-3);
+}
+.hp-row{
+  width:100%;
+  display:grid;grid-template-columns:auto minmax(0,1fr) 1.125rem;
+  align-items:center;gap:0 0.8125rem;
+  padding:0.625rem 0.5rem;
+  background:none;border:none;border-top:1px solid var(--rule);
+  text-align:left;color:inherit;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear;
+}
+/* 圖示的方框：介面唯一用第二色的地方之一，一眼看出哪一列是什麼 */
+.r-mark{
+  display:grid;place-items:center;flex:none;
+  width:2.25rem;height:2.25rem;
+  border:1px solid var(--rule);border-radius:var(--r);
+  background:var(--surface);color:var(--accent);
+  transition:border-color var(--t-fast) linear,background var(--t-fast) linear;
+}
+.r-ico{width:1.1875rem;height:1.1875rem;fill:none;stroke:currentColor;
+  stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+.r-txt{min-width:0;}
+.r-name{display:block;font-size:1.03125rem;font-weight:700;line-height:1.45;}
+.r-idx{
+  margin-right:0.55em;font-family:var(--mono);font-style:normal;font-weight:500;
+  font-size:var(--fs-micro);letter-spacing:.14em;color:var(--accent);
+}
+.r-desc{display:block;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.55;
+  transition:color var(--t-fast) linear;}
+.r-go{align-self:center;width:1.125rem;height:1.125rem;
+  fill:none;stroke:var(--rule-2);stroke-width:1.5;
+  stroke-linecap:round;stroke-linejoin:round;
+  transition:stroke var(--t-fast) linear,translate var(--t-fast) linear;}
+
+/* hover ＝ 淡一階的底＋箭頭變深往右。不反相 */
+.hp-row:hover,.hp-row:focus-visible{background:var(--hover);}
+.hp-row:hover .r-desc,.hp-row:focus-visible .r-desc{color:var(--ink-2);}
+.hp-row:hover .r-mark,.hp-row:focus-visible .r-mark{border-color:var(--accent);background:var(--accent-bg);}
+.hp-row:hover .r-go,.hp-row:focus-visible .r-go{stroke:var(--ink);translate:0.25rem 0;}
+
+/* 字放得下才把球體移到標題旁邊 */
+@container (min-width:46em){
+  .hp-body{
+    grid-template-columns:minmax(0,1fr) minmax(11rem,20rem);
+    grid-template-areas:"mark mark" "say orb" "index index" "foot foot";
+    column-gap:clamp(1.25rem,3.5vw,3rem);
+  }
+  .hp-orb{margin:0;}
+}
+/* 再寬一點，目錄才切兩欄——四組兩兩並排，像書的目錄頁 */
+@container (min-width:54em){
+  .hp-index{grid-template-columns:1fr 1fr;}
+  .hp-grp:nth-child(-n+2) .hp-g{margin-top:0.75rem;}
+}
+/* 窄的時候：圖示縮小，說明照樣留著 */
+@container (max-width:30em){
+  .hp-row{gap:0 0.625rem;padding:0.6875rem 0.375rem;}
+  .r-mark{width:1.875rem;height:1.875rem;}
+  .r-ico{width:1rem;height:1rem;}
+  .r-go{display:none;}
+}
+@media (max-width:620px){
+  .home-page{min-height:0;padding-bottom:3rem;}
+}
+
+/* ============================================================
+   內容頁：用細線與留白分區，不用卡片牆
+   ============================================================ */
+.page-head{padding:2.25rem 0 1.875rem;border-bottom:1px solid var(--rule);margin-bottom:0.5rem;}
+
+/* 頁首的引線：圖示＋編號＋分組，跟首頁目錄那一列對得起來，
+   一進來就知道「我在七個模組的哪一個、它屬於哪一組」 */
+.ph-kick{
+  display:flex;align-items:center;gap:0.5rem;
+  margin:0 0 0.875rem;
+  font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.16em;color:var(--ink-3);
+}
+.ph-ico{
+  display:grid;place-items:center;width:1.875rem;height:1.875rem;
+  border:1px solid var(--rule);border-radius:var(--r);
+  background:var(--surface);color:var(--accent);
+}
+.ph-ico .r-ico{width:1rem;height:1rem;}
+.ph-idx{color:var(--accent);font-weight:700;}
+.ph-grp{padding-left:0.5rem;border-left:1px solid var(--rule-2);}
+.d-ico .ico,.res-ico .ico{width:1.0625rem;height:1.0625rem;}
+.page-head h2{
+  margin:0;font-family:var(--font-display);font-size:var(--fs-display);font-weight:700;
+  line-height:1.3;letter-spacing:.01em;
+}
+.page-head p{
+  margin:0.875rem 0 0;color:var(--ink-2);max-width:34em;font-size:var(--fs-body);
+}
+
+/* 區塊：一條上緣細線 + 大留白，就是分區。沒有底色、沒有陰影、沒有大圓角 */
+.card{
+  border-top:1px solid var(--rule);
+  padding:2.125rem 0 0.375rem;
+  margin:0;
+  /* 腳本表要知道自己剩多少寬度。具名容器，免得跟首頁那組查詢互相影響。 */
+  container:cardq / inline-size;
+}
+.card:first-of-type{border-top:none;}
+.card h3{
+  margin:0 0 1.125rem;font-size:var(--fs-h2);font-weight:700;
+  letter-spacing:.01em;display:flex;align-items:center;gap:0.625rem;flex-wrap:wrap;
+}
+.card h4{margin:1.5rem 0 0.5rem;font-size:0.90625rem;font-weight:700;}
+
+.grid{display:grid;gap:1.75rem;}
+/* 下限包 min(100%,…)：手機或字級調大時容器比下限窄，就退成一欄，不撐出橫捲軸 */
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,18.75rem),1fr));}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,13.75rem),1fr));}
+
+/* 標籤：小型 mono，不是彩色藥丸 */
+.tag{
+  display:inline-block;font-family:var(--mono);font-size:var(--fs-micro);
+  letter-spacing:.1em;color:var(--ink-3);
+  border:1px solid var(--rule-2);padding:1px 0.4375rem;border-radius:var(--r);
+  margin-right:0.375rem;font-weight:500;
+}
+.tag.hot{color:var(--bad);border-color:var(--bad-rule);}
+.tag.blue{color:var(--ink);border-color:var(--rule-2);}
+.tag.green{color:var(--ok);border-color:var(--ok-rule);}
+
+/* ---------- 按鈕：一套，靠反相表達狀態 ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:0.4375rem;
+  height:2.125rem;padding:0 0.9375rem;
+  border:1px solid var(--accent);border-radius:var(--r);
+  background:var(--accent);color:var(--surface);
+  font-size:var(--fs-sm);font-weight:600;line-height:1;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear,
+             border-color var(--t-fast) linear;
+}
+.btn:hover{background:var(--accent-2);border-color:var(--accent-2);}
+.btn:active{background:var(--accent-2);border-color:var(--accent-2);color:var(--surface);}
+
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--rule-2);}
+.btn.ghost:hover{background:var(--hover);border-color:var(--ink-3);}
+.btn.ghost:active{background:var(--paper-2);border-color:var(--ink-3);}
+
+.btn.sm{height:1.75rem;padding:0 0.6875rem;font-size:var(--fs-xs);}
+.btn.sm .ico{width:0.8125rem;height:0.8125rem;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+
+.row{display:flex;gap:0.625rem;flex-wrap:wrap;align-items:center;}
+.spacer{flex:1;}
+
+/* ---------- 指令區塊：當成一份技術清單來排 ---------- */
+.prompt{
+  position:relative;margin:1rem 0;
+  background:var(--surface);
+  border:1px solid var(--rule-2);
+  border-left:3px solid var(--accent);
+  border-radius:var(--r);
+}
+.prompt .lbl{
+  display:block;padding:0.5625rem 0.875rem;
+  border-bottom:1px solid var(--rule);
+  font-family:var(--mono);font-size:var(--fs-micro);
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+}
+.prompt pre{
+  margin:0;padding:0.9375rem 1rem;
+  white-space:pre-wrap;word-break:break-word;
+  font-family:var(--mono);font-size:0.78125rem;line-height:1.95;color:var(--ink);
+}
+.prompt .copy{position:absolute;top:0.4375rem;right:0.5rem;}
+.prompt .lbl + pre{padding-top:0.875rem;}
+/* 語意只用標籤顏色，不用色塊或粗邊 */
+.prompt.g .lbl{color:var(--ok);}
+.prompt.o .lbl{color:var(--warn);}
+.prompt.r .lbl{color:var(--bad);}
+
+/* ---------- 表單 ---------- */
+.field{margin-bottom:1.125rem;}
+.field label{
+  display:block;font-size:var(--fs-xs);font-weight:700;
+  margin-bottom:0.375rem;color:var(--ink-2);
+}
+.field label .hint{font-weight:400;color:var(--ink-3);margin-left:0.4375rem;}
+.field input[type=text],.field textarea,.field select{
+  width:100%;padding:0.5625rem 0.6875rem;
+  border:1px solid var(--rule-2);border-radius:var(--r);
+  background:var(--surface);color:var(--ink);line-height:1.7;
+  transition:border-color var(--t-fast) linear;
+}
+.field input::placeholder,.field textarea::placeholder{color:var(--ink-3);}
+.field input:focus,.field textarea:focus,.field select:focus{
+  outline:none;border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);
+}
+.field textarea{resize:vertical;min-height:4.625rem;}
+
+/* ---------- 四原則 ---------- */
+
+/* ✘ / ✔ 對照：唯一大量用色的地方，因為那就是內容本身 */
+.ba{display:grid;gap:0;grid-template-columns:repeat(auto-fit,minmax(17.5rem,1fr));
+  margin-bottom:1.125rem;border:1px solid var(--rule);}
+.ba-col{padding:1rem 1.125rem;}
+.ba-col + .ba-col{border-left:1px solid var(--rule);}
+.ba-col b{display:flex;align-items:center;gap:0.375rem;margin-bottom:0.5625rem;
+  font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.1em;}
+.ba-col b .ico{width:1rem;height:1rem;flex:none;}
+.ba-col ul{margin:0;padding-left:1.0625rem;font-size:var(--fs-sm);line-height:2;}
+.ba-col.bad{background:var(--bad-bg);} .ba-col.bad b{color:var(--bad);}
+.ba-col.good{background:var(--ok-bg);} .ba-col.good b{color:var(--ok);}
+
+.anat{display:flex;flex-direction:column;gap:0;margin-bottom:1.125rem;
+  border:1px solid var(--rule);}
+.anat-row{padding:0.875rem 1rem;}
+.anat-row + .anat-row{border-top:1px solid var(--rule);}
+.anat-tag{font-family:var(--mono);font-size:var(--fs-micro);
+  letter-spacing:.1em;margin-bottom:0.5rem;color:var(--ink-3);}
+.anat-row pre{margin:0;white-space:pre-wrap;word-break:break-word;
+  font-family:var(--mono);font-size:0.78125rem;line-height:1.95;}
+
+/* ---------- 產生器 ---------- */
+/* A～D 的段落章：圓底反白，長頁面捲下去時一眼分得出走到第幾步 */
+.step-n{
+  display:inline-grid;place-items:center;flex:none;
+  min-width:1.75rem;height:1.75rem;padding:0 0.375rem;
+  border-radius:999px;background:var(--accent);color:var(--surface);
+  font-family:var(--mono);font-size:var(--fs-xs);font-weight:700;letter-spacing:.04em;
+}
+
+.pg{border-top:1px solid var(--rule);}
+.pg:first-of-type{border-top:1px solid var(--rule-2);}
+.pg summary{
+  cursor:pointer;padding:0.6875rem 2px;font-size:var(--fs-sm);list-style:none;
+  display:flex;align-items:center;gap:0.625rem;color:var(--ink-2);
+  transition:color var(--t-fast) linear;
+}
+.pg summary:hover{color:var(--ink);}
+.pg summary::-webkit-details-marker{display:none;}
+.pg summary::before{
+  content:"";width:0.375rem;height:0.375rem;flex:none;
+  border-right:1.5px solid var(--ink-3);border-bottom:1.5px solid var(--ink-3);
+  rotate:-45deg;transition:rotate var(--t-mid) linear;
+}
+.pg[open] summary::before{rotate:45deg;}
+.pg summary b{color:var(--ink);font-weight:700;}
+.pg .mini{color:var(--ink-3);font-size:var(--fs-xs);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.pg-body{padding:0 0 1rem;}
+.pg-rules{
+  font-size:var(--fs-xs);color:var(--ink-2);line-height:1.9;
+  padding:0.625rem 0 0.75rem;border-top:1px dotted var(--rule-2);
+  border-bottom:1px dotted var(--rule-2);margin-bottom:0.75rem;
+}
+.pg-rules b{color:var(--ok);font-family:var(--mono);font-size:var(--fs-micro);
+  letter-spacing:.08em;}
+.pg-rules b .ico{width:0.875rem;height:0.875rem;vertical-align:-0.16em;margin-right:0.25em;}
+.pg-rules b.x{color:var(--bad);}
+
+/* ---------- 腳本表 ---------- */
+.script-tbl{width:100%;border-collapse:collapse;font-size:var(--fs-sm);
+  table-layout:fixed;}
+.script-tbl th{
+  text-align:left;font-family:var(--mono);font-size:var(--fs-micro);
+  color:var(--ink-3);font-weight:500;letter-spacing:.1em;
+  padding:0 0.5rem 0.5625rem;text-transform:uppercase;
+}
+.script-tbl td{padding:0.375rem 0.5rem;vertical-align:top;}
+.script-tbl tr.row-r td{border-top:1px solid var(--rule);padding-top:0.75rem;}
+.script-tbl select,.script-tbl textarea,.script-tbl input{
+  width:100%;padding:0.4375rem 0.5625rem;border:1px solid var(--rule-2);border-radius:var(--r);
+  background:var(--surface);color:var(--ink);font-size:var(--fs-sm);line-height:1.7;}
+.script-tbl textarea{resize:vertical;min-height:3.625rem;}
+.script-tbl textarea::placeholder,.script-tbl input::placeholder{color:var(--ink-3);}
+.script-tbl select:focus,.script-tbl textarea:focus,.script-tbl input:focus{
+  outline:none;border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);}
+.script-tbl .num{font-family:var(--mono);font-weight:600;color:var(--ink-3);
+  text-align:right;padding-top:0.875rem;}
+.script-tbl .act{white-space:nowrap;padding-top:0.625rem;text-align:right;}
+
+.icon-btn{
+  background:var(--surface);border:1px solid var(--rule-2);border-radius:var(--r);
+  width:1.625rem;height:1.625rem;color:var(--ink-3);
+  display:inline-grid;place-items:center;margin-left:0.1875rem;
+  transition:color var(--t-fast) linear,border-color var(--t-fast) linear,
+             background var(--t-fast) linear;}
+.icon-btn .ico{width:0.8125rem;height:0.8125rem;}
+.icon-btn:hover{background:var(--hover);border-color:var(--ink-3);color:var(--ink);}
+.icon-btn.del:hover{background:var(--bad);border-color:var(--bad);color:#fff;}
+
+/* ---------- 疑難排解 ---------- */
+.diag{border-top:1px solid var(--rule);}
+.diag:first-of-type{border-top:1px solid var(--rule-2);}
+.diag .hd{padding:0.875rem 2px;display:flex;gap:0.875rem;align-items:center;cursor:pointer;}
+.diag .hd .t{flex:1;}
+/* 症狀前面掛一個警示框，一整列看起來就像「一則故障」 */
+.d-ico{
+  display:grid;place-items:center;flex:none;width:2.125rem;height:2.125rem;
+  border:1px solid var(--rule);border-radius:var(--r);
+  background:var(--surface);color:var(--warn);
+  transition:border-color var(--t-fast) linear,background var(--t-fast) linear;
+}
+.diag.open .d-ico,.diag .hd:hover .d-ico{border-color:var(--warn-rule);background:var(--warn-bg);}
+.diag .hd b{font-size:var(--fs-body);font-weight:700;display:block;margin-bottom:0.375rem;}
+.diag .hd .arrow{
+  flex:none;width:0.4375rem;height:0.4375rem;align-self:center;
+  border-right:1.5px solid var(--ink-3);border-bottom:1.5px solid var(--ink-3);
+  rotate:-45deg;font-size:0;
+  transition:rotate var(--t-mid) linear,border-color var(--t-mid) linear;}
+.diag.open .hd .arrow{rotate:45deg;border-color:var(--ink);}
+.diag .bd{display:none;padding:0 0 1.625rem;}
+.diag.open .bd{display:block;}
+.diag .bd h5{
+  margin:1.25rem 0 0.375rem;font-family:var(--mono);font-size:var(--fs-micro);
+  font-weight:500;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase;}
+.diag .bd p{margin:0;font-size:var(--fs-sm);color:var(--ink-2);max-width:36em;}
+
+/* ---------- 學習資源：清單，不是卡片牆 ---------- */
+.res-note{font-size:var(--fs-sm);color:var(--ink-2);margin:0 0 0.375rem;max-width:36em;}
+/* 學習資源：寬螢幕排兩欄，一頁看得完；每一筆左邊掛類型圖示
+   （影片／PDF 文件／官方網站／文章），掃一眼就知道點下去是什麼 */
+.res-grid{display:grid;gap:0 clamp(1.5rem,3.5vw,3rem);
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));}
+.res{
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 0.875rem;align-items:start;
+  text-decoration:none;color:inherit;
+  padding:1rem 0.5rem;border-top:1px solid var(--rule);
+  transition:background var(--t-fast) linear;
+}
+.res:first-of-type{border-top:1px solid var(--rule-2);}
+.res:hover{background:var(--paper-2);}
+.res-ico{
+  display:grid;place-items:center;width:2.125rem;height:2.125rem;margin-top:0.125rem;
+  border:1px solid var(--rule);border-radius:var(--r);
+  background:var(--surface);color:var(--ink-3);
+  transition:border-color var(--t-fast) linear,color var(--t-fast) linear;
+}
+.res:hover .res-ico{border-color:var(--accent);color:var(--accent);}
+.res-body{min-width:0;}
+.res-t{
+  font-size:var(--fs-body);font-weight:700;
+  display:inline-flex;align-items:center;gap:0.375rem;
+  border-bottom:1px solid transparent;
+  transition:border-color var(--t-fast) linear;
+}
+.res-grid .res-w,.res-grid .res-d{display:block;}
+.res:hover .res-t{border-bottom-color:var(--ink);}
+.res-t .ico{width:0.8125rem;height:0.8125rem;color:var(--ink-3);}
+.res-w{font-family:var(--mono);font-size:var(--fs-micro);color:var(--ink-3);
+  margin:0.1875rem 0 0.4375rem;letter-spacing:.06em;}
+.res-d{font-size:var(--fs-sm);color:var(--ink-2);max-width:38em;}
+
+/* ---------- 小輸入 ---------- */
+.mini-lbl{display:block;font-family:var(--mono);font-size:var(--fs-micro);
+  color:var(--ink-3);margin-bottom:0.3125rem;letter-spacing:.1em;text-transform:uppercase;}
+.mini-in{width:100%;padding:0.5rem 0.6875rem;border:1px solid var(--rule-2);
+  border-radius:var(--r);background:var(--surface);color:var(--ink);}
+.mini-in::placeholder{color:var(--ink-3);}
+.mini-in:focus{outline:none;border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);}
+
+/* ---------- 讀物縮圖：介面是中性的，顏色來自作品本身 ---------- */
+.thumbs{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(8.25rem,1fr));
+  content-visibility:auto;contain-intrinsic-size:auto none auto 620px;}
+.thumb{
+  background:none;border:none;padding:0;cursor:pointer;text-align:left;
+}
+.thumb img{
+  width:100%;aspect-ratio:1/1.414;object-fit:cover;object-position:top;
+  background:#fff;border:1px solid var(--rule);
+  transition:border-color var(--t-fast) linear;
+}
+.thumb:hover img{border-color:var(--ink);}
+.thumb .cap{
+  padding:0.4375rem 0 0;font-size:var(--fs-micro);color:var(--ink-3);
+  display:flex;align-items:baseline;gap:0.375rem;
+}
+.thumb .cap b{font-family:var(--mono);color:var(--ink-2);}
+.thumb.bad .cap{color:var(--bad);}
+.thumb.bad .cap b{color:var(--bad);}
+.thumb.bad img{border-color:var(--bad-rule);}
+
+.demo-strip{display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.875rem;}
+.demo-strip figure{margin:0;width:9.375rem;}
+.demo-strip img{border:1px solid var(--rule);background:#fff;cursor:zoom-in;}
+.demo-strip figcaption{font-family:var(--mono);font-size:var(--fs-micro);
+  color:var(--ink-3);margin-top:0.4375rem;}
+
+/* ---------- 範例明細 ---------- */
+.bk-detail{display:grid;grid-template-columns:13.75rem minmax(0,1fr);gap:1.625rem;
+  margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--rule);align-items:start;}
+.bk-detail img{border:1px solid var(--rule);cursor:zoom-in;background:#fff;}
+.bk-detail .txt{
+  padding:0.875rem 1rem;border:1px solid var(--rule);background:var(--surface);
+  white-space:pre-wrap;font-size:var(--fs-body);line-height:2.1;}
+.bk-detail .teach{font-size:var(--fs-sm);color:var(--ink-2);margin:0.875rem 0 0;max-width:36em;}
+
+/* ---------- 檢查表 ---------- */
+.chk-grp{margin-bottom:0.625rem;}
+.chk-grp > b{
+  display:block;font-family:var(--mono);font-size:var(--fs-micro);
+  margin-bottom:0.625rem;padding-bottom:0.4375rem;border-bottom:1px solid var(--rule);
+  color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase;font-weight:500;}
+.chk{display:flex;gap:0.6875rem;align-items:flex-start;padding:0.4375rem 0;
+  font-size:var(--fs-sm);cursor:pointer;color:var(--ink-2);
+  transition:color var(--t-fast) linear;}
+.chk:hover{color:var(--ink);}
+/* 勾選框自己畫：系統預設的框在米白紙上看不太出來，打勾也太小 */
+.chk input{
+  appearance:none;-webkit-appearance:none;
+  width:1.125rem;height:1.125rem;margin:0.25rem 0 0;flex:none;cursor:pointer;
+  display:grid;place-items:center;
+  border:1.5px solid var(--rule-2);border-radius:4px;background:var(--surface);
+  transition:background var(--t-fast) linear,border-color var(--t-fast) linear;
+}
+.chk:hover input{border-color:var(--ink-3);}
+.chk input:checked{background:var(--ok);border-color:var(--ok);}
+.chk input:checked::after{
+  content:"";width:0.5rem;height:0.28rem;margin-top:-0.1rem;
+  border-left:2px solid var(--surface);border-bottom:2px solid var(--surface);
+  rotate:-45deg;
+}
+.chk.done span{text-decoration:line-through;color:var(--ink-3);}
+.progress{height:0.375rem;background:var(--rule);border-radius:999px;overflow:hidden;}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:999px;
+  transition:width var(--t-mid) linear;}
+
+/* ---------- 提示條：靠左細線標示，不做成色塊卡片 ----------
+   線的顏色本來就分四種（說明／可以／注意／不可以），但顏色不能是唯一的線索，
+   所以每一種再配一個圖示：說明是 i、可以是打勾、注意是燈泡、不可以是三角驚嘆號。
+   圖示用 mask 畫，顏色跟著那條線走，不用為了四種顏色各存一張圖。 */
+.note{
+  position:relative;
+  padding:2px 0 2px 2.375rem;margin:1rem 0;
+  font-size:var(--fs-sm);line-height:1.9;color:var(--ink-2);
+  border-left:2px solid var(--rule-2);max-width:38em;
+}
+.note::before{
+  content:"";position:absolute;left:0.9375rem;top:0.45em;
+  width:1.0625rem;height:1.0625rem;
+  background:var(--rule-2);
+  -webkit-mask:var(--note-ico) center/contain no-repeat;
+          mask:var(--note-ico) center/contain no-repeat;
+  --note-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+}
+.note b{font-weight:700;color:var(--ink);}
+.note a{color:inherit;font-weight:700;}
+.note.b{border-left-color:var(--ink);}
+.note.g{border-left-color:var(--ok);}
+.note.o{border-left-color:var(--warn);}
+.note.r{border-left-color:var(--bad);}
+.note.b::before{background:var(--ink);}
+.note.g::before{background:var(--ok);
+  --note-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m16 9-5.5 5.5L8 12'/%3E%3C/svg%3E");}
+.note.o::before{background:var(--warn);
+  --note-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E");}
+.note.r::before{background:var(--bad);
+  --note-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");}
+
+.empty{padding:2.375rem 0;color:var(--ink-3);font-size:var(--fs-sm);}
+.empty p{margin:0;max-width:34em;}
+
+/* ---------- Toast ---------- */
+#toast{
+  position:fixed;bottom:0;left:50%;translate:-50% 100%;
+  background:var(--ink);color:var(--paper);
+  padding:0.75rem 1.375rem;font-size:var(--fs-sm);font-weight:600;
+  z-index:99;
+  transition:translate var(--t-mid) linear;
+}
+#toast.on{translate:-50% 0;}
+
+/* ---------- Lightbox ---------- */
+#lb{position:fixed;inset:0;background:rgba(20,23,28,.9);display:none;z-index:100;
+  padding:1.75rem;overflow:auto;}
+#lb.on{display:grid;place-items:center;}
+#lb img{max-height:92vh;width:auto;background:#fff;}
+#lb .x{position:fixed;top:1.25rem;right:1.5rem;
+  background:none;color:#fff;border:1px solid rgba(255,255,255,.4);
+  width:2.125rem;height:2.125rem;border-radius:var(--r);font-size:0.9375rem;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear;}
+#lb .x:hover{background:#fff;color:var(--ink);}
+
+/* ============================================================
+   減少動態
+   ============================================================ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+
+/* ============================================================
+   窄螢幕
+   ============================================================ */
+@media (max-width:900px){
+  .main{padding:0 1.25rem 5rem;}
+  .topbar{padding:0.875rem 1.25rem;}
+  .page-head{padding:1.875rem 0 1.5rem;}
+  .bk-detail{grid-template-columns:1fr;}
+  .ba-col + .ba-col{border-left:none;border-top:1px solid var(--rule);}
+}
+
+/* ---------- 列印 ---------- */
+/* ============================================================
+   友善就醫
+   ============================================================ */
+
+/* 三個數字：用字級落差建立層級，不畫框也不上色 */
+.c-facts{display:grid;gap:1.75rem;
+  grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));}
+.c-n{font-family:var(--mono);font-size:2.1rem;font-weight:700;line-height:1.1;
+  letter-spacing:-.02em;}
+.c-ft{margin-top:0.25rem;font-size:var(--fs-sm);font-weight:700;}
+.c-fd{margin-top:0.5rem;font-size:var(--fs-xs);color:var(--ink-2);line-height:1.75;}
+
+/* 就醫時刻 */
+.c-m{padding:1.5rem 0;border-top:1px solid var(--rule);}
+.c-m:first-of-type{border-top:1px solid var(--rule-2);}
+.c-m-w{font-size:var(--fs-sm);color:var(--ink-2);}
+.c-m-t{margin:0.375rem 0 0.625rem 2.4rem;font-size:1.0625rem;font-weight:700;
+  display:flex;flex-wrap:wrap;align-items:center;gap:0.625rem;}
+.c-m-d{margin:0 0 0.4rem 2.4rem;max-width:44em;
+  font-size:var(--fs-sm);color:var(--ink-2);line-height:1.85;}
+.c-dl{display:flex;flex-wrap:wrap;gap:0.5rem;margin:0.75rem 0 0 2.4rem;}
+
+/* 下載／外連小鈕。與 .btn 同一套反相邏輯，只是更輕 */
+.dl{
+  display:inline-flex;align-items:center;gap:0.375rem;
+  padding:0.25rem 0.625rem;
+  border:1px solid var(--rule-2);border-radius:var(--r);
+  font-size:var(--fs-xs);color:var(--ink-2);text-decoration:none;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear,
+             border-color var(--t-fast) linear;
+}
+.dl:hover{background:var(--hover);border-color:var(--ink-3);color:var(--ink);}
+.dl .ico{width:0.75rem;height:0.75rem;flex:none;}
+
+/* 三種版本 */
+.c-fmt{padding:0.875rem 0;border-top:1px solid var(--rule);}
+.c-fmt:first-of-type{border-top:1px solid var(--rule-2);}
+.c-fmt-t{font-size:var(--fs-sm);font-weight:700;}
+.c-fmt-d{margin-top:0.25rem;max-width:44em;
+  font-size:var(--fs-sm);color:var(--ink-2);line-height:1.85;}
+
+/* 知情同意的七步 */
+.c-steps{margin:0 0 1.125rem;padding:0;list-style:none;counter-reset:cs;
+  max-width:44em;}
+.c-steps li{position:relative;counter-increment:cs;
+  padding:0.5rem 0 0.5rem 2.4rem;border-top:1px solid var(--rule);
+  font-size:var(--fs-sm);line-height:1.8;}
+.c-steps li:first-child{border-top:1px solid var(--rule-2);}
+.c-steps li::before{content:counter(cs,decimal-leading-zero);
+  position:absolute;left:0;top:0.55rem;
+  font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.16em;
+  color:var(--ink-3);}
+/* 第 6 項是這一段的重點，用字重點出來，不另外上色塊 */
+.c-steps li:nth-child(6){font-weight:700;color:var(--ink);}
+.c-steps li:nth-child(6)::before{color:var(--ink);}
+
+.c-m-t .tag,.res-t .tag{margin-left:0.25rem;}
+
+@media (max-width:620px){
+  .c-m-t,.c-m-d,.c-dl{margin-left:0;}
+}
+
+/* ============================================================
+   課程：目錄頁與課次頁
+   ------------------------------------------------------------
+   每個畫面一個主角：目錄頁是「開始」那顆按鈕，課次頁是課名。
+   進度用文字＋分段條並存，不只靠顏色。
+   ============================================================ */
+.course-cta{margin-top:1.25rem;}
+.course-cta .btn{text-decoration:none;}
+.course-meta{font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.12em;
+  color:var(--ink-3);margin-left:0.25rem;}
+
+/* 目錄 */
+/* 上緣的線由 .page-head 的底線兼任，不要兩條線疊在一起 */
+.ls-list{margin-top:0;}
+.ls-row{
+  display:grid;grid-template-columns:auto minmax(0,1fr) 1.125rem;
+  gap:0.1rem 1.25rem;align-items:center;
+  padding:1rem 0.875rem;border-bottom:1px solid var(--rule);
+  color:inherit;text-decoration:none;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear;
+}
+/* 課次編號做成方框，跟首頁目錄的圖示框同一個尺寸與圓角 */
+.ls-i{
+  grid-row:1/3;display:grid;place-items:center;
+  width:2.125rem;height:2.125rem;
+  border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
+  font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.08em;color:var(--accent);
+  transition:border-color var(--t-fast) linear,background var(--t-fast) linear;
+}
+.ls-row.seen .ls-i{font-weight:700;border-color:var(--ok-rule);background:var(--ok-bg);color:var(--ok);}
+.ls-row:hover .ls-i,.ls-row:focus-visible .ls-i{border-color:var(--accent);background:var(--accent-bg);}
+.ls-t{font-size:1.0625rem;font-weight:700;line-height:1.5;
+  display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;}
+/* 看過的課標一個綠勾，不只靠編號框的顏色 */
+.ls-done{
+  display:inline-flex;align-items:center;gap:0.2rem;
+  font-family:var(--mono);font-size:var(--fs-micro);font-weight:500;letter-spacing:.08em;
+  color:var(--ok);
+}
+.ls-done .ico{width:0.8125rem;height:0.8125rem;}
+.course-meta{display:inline-flex;align-items:center;gap:0.3125rem;}
+.course-meta .ico{width:0.875rem;height:0.875rem;}
+.ls-s{grid-column:2;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.6;
+  transition:color var(--t-fast) linear;}
+.ls-row > .ico{grid-column:3;grid-row:1/3;width:1.125rem;height:1.125rem;
+  stroke:var(--rule-2);transition:stroke var(--t-fast) linear,translate var(--t-fast) linear;}
+.ls-row:hover,.ls-row:focus-visible{background:var(--hover);}
+.ls-row:hover .ls-s,.ls-row:focus-visible .ls-s{color:var(--ink-2);}
+.ls-row:hover > .ico,.ls-row:focus-visible > .ico{stroke:var(--ink);translate:0.25rem 0;}
+
+/* 課程列：我在哪 */
+.course-bar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem 1.25rem;
+  padding:1.5rem 0 1rem;border-bottom:1px solid var(--rule);
+}
+.cb-idx{display:inline-flex;align-items:center;gap:0.3rem;
+  font-size:var(--fs-sm);font-weight:700;color:var(--ink-2);text-decoration:none;
+  border-bottom:1px solid transparent;transition:color var(--t-fast) linear,border-color var(--t-fast) linear;}
+.cb-idx .ico{width:0.875rem;height:0.875rem;}
+.cb-idx:hover{color:var(--ink);border-bottom-color:var(--ink);}
+.cb-pos{font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.12em;color:var(--accent);}
+.cb-of{color:var(--ink-3);}
+.cb-prog{display:flex;gap:3px;margin-left:auto;}
+.cb-prog i{display:block;width:1.5rem;height:3px;background:var(--rule-2);}
+.cb-prog i.on{background:var(--accent);}
+
+/* 課次 */
+.lesson{padding:2.5rem 0 0.5rem;}
+.lesson-title{margin:0;font-family:var(--font-display);font-size:var(--fs-display);
+  font-weight:700;line-height:1.35;max-width:22em;}
+.lesson-title:focus{outline:none;}
+.lesson-sub{margin:0.75rem 0 0;font-size:var(--fs-h2);font-weight:600;color:var(--ink-2);
+  line-height:1.7;max-width:34em;}
+.lesson-body{margin-top:2rem;}
+.lesson-why{margin:0 0 1.25rem;max-width:36em;font-size:var(--fs-body);color:var(--ink-2);}
+.lesson-h3{margin:2.25rem 0 0.75rem;font-size:var(--fs-h2);font-weight:700;}
+.lesson-src{margin:1rem 0 0;font-size:var(--fs-xs);color:var(--ink-3);}
+.lesson-src a{color:var(--ink-2);font-weight:600;text-decoration:none;
+  border-bottom:1px solid var(--rule-2);}
+.lesson-src a:hover{color:var(--ink);border-bottom-color:var(--ink);}
+.lesson-src .ico{width:0.75rem;height:0.75rem;vertical-align:-1px;margin-left:0.2rem;}
+.lesson-src .tag{margin-left:0.5rem;}
+.lesson-body .ba{margin-bottom:1.125rem;}
+.lesson-body .note{margin-bottom:0;}
+.lesson-body .c-m:first-of-type{border-top:none;padding-top:0;}
+.lesson-body .c-m-w{font-size:var(--fs-sm);color:var(--ink-3);}
+.lesson-body .c-m-t,.lesson-body .c-m-d,.lesson-body .c-dl{margin-left:0;}
+
+/* 上一課／下一課：下一課是主要動作（實心），上一課退成次要 */
+.lesson-nav{
+  display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;
+  margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--rule);
+}
+.ln{
+  display:flex;flex-direction:column;gap:0.15rem;min-height:3.75rem;
+  padding:0.875rem 1.125rem;
+  border:1px solid var(--rule-2);border-radius:var(--r);
+  color:var(--ink);text-decoration:none;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear,
+             border-color var(--t-fast) linear;
+}
+.ln.next{background:var(--accent);border-color:var(--accent);color:var(--surface);text-align:right;}
+.ln.next:hover,.ln.next:focus-visible{background:var(--accent-2);border-color:var(--accent-2);}
+.ln.prev:hover,.ln.prev:focus-visible{background:var(--hover);border-color:var(--ink-3);}
+.ln-k{font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.14em;opacity:.65;}
+.ln-t{font-size:var(--fs-sm);font-weight:700;line-height:1.45;}
+
+@media (max-width:620px){
+  .lesson-nav{grid-template-columns:1fr;}
+  .ln.next{order:-1;}
+  .cb-prog{margin-left:0;width:100%;}
+  .cb-prog i{flex:1;}
+}
+
+/* ---------- 設定裡的二選一（作品類型、圖上的文字） ----------
+   兩個選項並排、各自寫出副標，不用下拉選單——這是會改變整份輸出的決定，
+   要讓人一眼看完兩個選項再選，不是點開才知道有什麼。 */
+.opt{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem 1.25rem;
+  margin-bottom:1.125rem;}
+.opt-l{font-size:var(--fs-sm);font-weight:700;}
+.opt-l .hint{font-weight:400;color:var(--ink-3);margin-left:0.4375rem;}
+.seg{display:flex;flex-wrap:wrap;max-width:100%;padding:2px;background:var(--paper-2);border-radius:var(--r);}
+.seg button{
+  display:block;padding:0.4rem 0.9rem;text-align:left;
+  background:transparent;color:var(--ink-2);border:none;border-radius:2px;
+  transition:background var(--t-fast) linear,color var(--t-fast) linear;
+}
+.seg button b{display:block;font-size:var(--fs-sm);font-weight:700;line-height:1.5;}
+.seg button i{display:block;font-style:normal;font-size:var(--fs-micro);
+  color:var(--ink-3);line-height:1.5;}
+.seg button:hover{color:var(--ink);}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);}
+.seg button[aria-pressed="true"] b{color:var(--accent);}
+.seg button[aria-pressed="true"] i{color:var(--ink-2);}
+
+/* 收尾的操作步驟 */
+.howto{margin:0 0 1.125rem;padding-left:1.5rem;max-width:40em;
+  font-size:var(--fs-sm);color:var(--ink-2);line-height:2;}
+.howto b{color:var(--ink);}
+
+/* ---------- 快速套用的小標籤（畫風） ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem;}
+.chip{
+  padding:0.25rem 0.7rem;
+  border:1px solid var(--rule-2);border-radius:999px;
+  background:var(--surface);color:var(--ink-2);
+  font-size:var(--fs-xs);
+  transition:background var(--t-fast) linear,color var(--t-fast) linear,
+             border-color var(--t-fast) linear;
+}
+.chip:hover{background:var(--hover);color:var(--ink);border-color:var(--ink-3);}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface);}
+
+/* ---------- 課程裡的範例頁 ---------- */
+.sp{padding:1.375rem 0;border-top:1px solid var(--rule);}
+.sp:first-of-type{border-top:1px solid var(--rule-2);}
+.sp-h{display:flex;flex-wrap:wrap;align-items:center;gap:0.625rem;margin-bottom:0.625rem;}
+.sp-n{font-family:var(--mono);font-size:var(--fs-sm);font-weight:700;color:var(--accent);
+  letter-spacing:.08em;}
+.sp-t{
+  margin:0 0 0.625rem;padding:0.75rem 1rem;
+  background:var(--accent-bg);border-radius:var(--r);
+  font-family:inherit;font-size:var(--fs-sm);font-weight:700;line-height:2;
+  white-space:pre-wrap;word-break:break-word;max-width:34em;
+}
+.sp-w{margin:0;max-width:40em;font-size:var(--fs-sm);color:var(--ink-2);line-height:1.9;}
+
+/* 課程裡的五頁範例：縮圖條 + 逐頁圖文並排 */
+.sp-strip{display:flex;flex-wrap:wrap;gap:0.75rem;margin:0 0 1.5rem;}
+.sp-mini{position:relative;display:block;width:clamp(78px,11vw,116px);
+  border:1px solid var(--rule-2);border-radius:var(--r);overflow:hidden;
+  background:var(--surface);text-decoration:none;
+  transition:border-color var(--t-fast) linear;}
+.sp-mini img{display:block;width:100%;height:auto;}
+.sp-mini span{position:absolute;left:0;bottom:0;
+  padding:0.1rem 0.4rem;font-family:var(--mono);font-size:var(--fs-micro);
+  background:var(--accent);color:var(--surface);}
+.sp-mini:hover{border-color:var(--accent);}
+
+.sp-row{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr);
+  gap:1.25rem;align-items:start;margin-bottom:0.75rem;}
+.sp-fig{display:block;border:1px solid var(--rule-2);border-radius:var(--r);
+  overflow:hidden;background:var(--surface);
+  transition:border-color var(--t-fast) linear;}
+.sp-fig:hover{border-color:var(--accent);}
+.sp-fig img{display:block;width:100%;height:auto;}
+.sp-txt{min-width:0;}
+@media (max-width:620px){ .sp-row{grid-template-columns:1fr;} }
+
+/* 範例頁圖下面的「版面示意」小連結 */
+.sp-draft{display:block;margin-top:0.35rem;text-align:center;
+  font-size:var(--fs-micro);color:var(--ink-3);text-decoration:none;
+  border-bottom:1px solid transparent;
+  transition:color var(--t-fast) linear,border-color var(--t-fast) linear;}
+.sp-draft:hover{color:var(--ink-2);border-bottom-color:var(--rule-2);}
+
+/* 首頁目錄的分組標 */
+.hp-g{padding:1.25rem 0.875rem 0.45rem;
+  font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.18em;color:var(--ink-3);}
+.hp-g:first-child{padding-top:0.9rem;}
+
+/* ---------- 影片課：七層、中心軸、分幕 ----------
+   跟讀物那邊的 .anat 同一個邏輯：一列一個概念，靠分隔線分組，不用卡片牆。 */
+.vgrid{margin:0.5rem 0 1.25rem;}
+.vrow{padding:0.9375rem 0;border-top:1px solid var(--rule);}
+.vrow:first-child{border-top:1px solid var(--rule-2);}
+.v-h{display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.375rem;}
+.v-n{font-family:var(--mono);font-size:var(--fs-micro);font-weight:700;
+  letter-spacing:.1em;color:var(--accent);white-space:nowrap;}
+.v-t{font-size:var(--fs-body);font-weight:700;}
+.v-en{font-family:var(--mono);font-size:var(--fs-micro);color:var(--ink-3);}
+.v-d{margin:0 0 0.5rem;font-size:var(--fs-sm);color:var(--ink-2);
+  line-height:1.85;max-width:44em;}
+.v-d:last-child{margin-bottom:0;}
+.v-src{margin:0.5rem 0 0;font-family:var(--mono);font-size:var(--fs-micro);
+  color:var(--ink-3);line-height:1.7;}
+
+/* 字彙表：可以直接抄進指令的詞 */
+.v-words{display:flex;flex-wrap:wrap;gap:0.375rem;}
+.v-words span{padding:0.1875rem 0.5rem;border:1px solid var(--rule);border-radius:var(--r);
+  background:var(--paper-2);font-size:var(--fs-xs);color:var(--ink-2);}
+
+/* 七層公式那一行 */
+.vform{margin:0.5rem 0 1.25rem;padding:0.875rem 1rem;
+  border:1px solid var(--rule-2);border-radius:var(--r);background:var(--surface);
+  font-size:var(--fs-sm);line-height:2;word-break:break-word;}
+.vform b{font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.12em;
+  color:var(--accent);margin-right:0.375rem;}
+
+/* 讀物 ↔ 影片 對照 */
+.vmap{display:grid;gap:0.625rem;margin:0.5rem 0 0;
+  grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));}
+.vmap > div{padding:0.75rem 0.875rem;border:1px solid var(--rule);border-radius:var(--r);
+  font-size:var(--fs-sm);color:var(--ink-2);line-height:1.8;}
+.vmap b{display:block;margin-bottom:0.3125rem;font-family:var(--mono);
+  font-size:var(--fs-micro);letter-spacing:.12em;}
+.vmap .bk{background:var(--paper-2);}   .vmap .bk b{color:var(--ink-3);}
+.vmap .vd{background:var(--accent-bg);} .vmap .vd b{color:var(--accent);}
+
+/* 一幕一段 */
+.vact{margin:1.5rem 0;padding-top:1.125rem;border-top:1px solid var(--rule-2);}
+.vact-h{display:flex;align-items:baseline;gap:0.625rem;flex-wrap:wrap;margin-bottom:0.625rem;}
+.vact-h b{font-size:var(--fs-h2);}
+.vact-w{margin:0.5rem 0 0;font-size:var(--fs-sm);color:var(--ink-2);
+  line-height:1.85;max-width:44em;}
+
+/* ---------- 逐鏡腳本表 ----------
+   跟逐頁腳本同一張表的骨架，只是欄位換成鏡頭。
+   時間碼放在鏡號下面：使用者最常問的是「這一鏡在第幾秒」。 */
+.vtbl .num{position:relative;}
+.v-clock{display:block;margin-top:0.25rem;font-family:var(--mono);
+  font-size:var(--fs-micro);font-weight:400;color:var(--ink-3);}
+.v-sec{display:flex;align-items:center;gap:0.3125rem;margin-top:0.3125rem;}
+.v-sec input{width:3.5rem;}
+.v-sec span{font-size:var(--fs-xs);color:var(--ink-3);}
+.vtbl select + select{margin-top:0.3125rem;}
+.vtbl .tag.hot{margin-top:0.3125rem;display:inline-block;}
+
+/* ---------- 腳本表：窄的時候改成直式 ----------
+   條件用 em，而 em 會跟著 --ui 放大，所以「字級調到 32pt」等於「容器變窄」。
+   12／16／20pt 維持表格；32pt（或視窗很窄）自動一列一區塊，
+   欄位變成滿版，操作鈕也不會再被擠出表格右緣。 */
+@container cardq (max-width:44em){
+  .script-tbl{table-layout:auto;}
+  .script-tbl thead{display:none;}
+  .script-tbl,.script-tbl tbody,.script-tbl tr,.script-tbl td{display:block;width:auto;}
+  .script-tbl tr.row-r{border-top:1px solid var(--rule-2);padding:1rem 0 1.375rem;}
+  .script-tbl tr.row-r td{border-top:0;padding:0.625rem 0 0;}
+  .script-tbl td[data-l]::before{
+    content:attr(data-l);display:block;margin-bottom:0.3125rem;
+    font-family:var(--mono);font-size:var(--fs-micro);letter-spacing:.1em;color:var(--ink-3);}
+  .script-tbl .num{text-align:left;padding:0;font-family:var(--mono);
+    font-size:var(--fs-sm);font-weight:700;color:var(--ink);}
+  .script-tbl td.num[data-l]::before{display:inline;margin:0 0.25rem 0 0;}
+  .script-tbl .act{text-align:left;padding-top:1rem;}
+  .script-tbl .act .icon-btn{width:2.5rem;height:2.5rem;margin:0 0.5rem 0 0;}
+  .script-tbl .act .icon-btn .ico{width:1.125rem;height:1.125rem;}
+  .v-clock{display:inline;margin-left:0.5rem;font-weight:400;}
+  .v-sec{display:inline-flex;margin:0 0 0 0.625rem;vertical-align:middle;}
+  .v-sec input{width:5rem;}
+  .vtbl td[data-l="鏡型與秒數"] select{width:auto;min-width:12rem;max-width:100%;}
+}
+
+/* ---------- 改了哪裡 ----------
+   螢光筆黃：跟主色磚紅、語意色的綠紅都分得開，一看就是「這裡被標了」。
+   黃底上的字一律用 --chg-ink（對黃底 5.9:1、對紙 7.4:1）。
+   不只靠顏色：標籤前一定有「改了」兩個字。 */
+:root{
+  --chg:#c08a12;        /* 框線 */
+  --chg-bg:#fdf4d6;     /* 標著的欄位底色（持續） */
+  --chg-hi:#f7d774;     /* 螢光筆黃：指令裡的字、徽章、閃的那一下 */
+  --chg-ink:#6b4700;
+}
+.field input.chg,.field textarea.chg{
+  border-color:var(--chg);background:var(--chg-bg);box-shadow:inset 0 0 0 1px var(--chg);}
+.field input.chg:focus,.field textarea.chg:focus{
+  border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);}
+.field .chg-anim{animation:chg-pulse 0.95s ease-out 2;}
+@keyframes chg-pulse{
+  0%  {background-color:var(--chg-hi);box-shadow:0 0 0 0 rgba(214,160,30,.55),inset 0 0 0 1px var(--chg);}
+  70% {box-shadow:0 0 0 0.55rem rgba(214,160,30,0),inset 0 0 0 1px var(--chg);}
+  100%{background-color:var(--chg-bg);box-shadow:0 0 0 0 rgba(214,160,30,0),inset 0 0 0 1px var(--chg);}
+}
+.opt.chg .seg{outline:2px solid var(--chg);outline-offset:3px;border-radius:var(--r);}
+.opt.chg-anim .seg{animation:chg-ring 0.95s ease-out 2;}
+@keyframes chg-ring{
+  0%  {box-shadow:0 0 0 0 rgba(214,160,30,.6);}
+  100%{box-shadow:0 0 0 0.75rem rgba(214,160,30,0);}
+}
+.chg-b{display:inline-block;margin-right:0.4375rem;padding:0 0.5rem;border-radius:999px;
+  background:var(--chg-hi);color:var(--chg-ink);font-size:var(--fs-micro);font-weight:800;
+  line-height:1.75;letter-spacing:.06em;vertical-align:0.06em;}
+.chg-pop{animation:chg-pop 0.45s ease-out both;}
+@keyframes chg-pop{
+  0%  {transform:scale(.6);opacity:0;}
+  60% {transform:scale(1.12);opacity:1;}
+  100%{transform:scale(1);}
+}
+/* 指令裡的字：不閃（每打一個字指令就重畫一次，閃會很吵），靜態標黃就好 */
+mark.chg-m{background:var(--chg-hi);color:inherit;border-radius:3px;
+  box-shadow:0 0 0 1px rgba(192,138,18,.55);padding:0 0.0625rem;}
+.prompt.chg-box{box-shadow:0 0 0 2px var(--chg);border-left-color:var(--chg);}
+.tag.chg-t{color:var(--chg-ink);border-color:var(--chg);background:var(--chg-bg);}
+
+
+@media (prefers-reduced-motion:reduce){
+  .field .chg-anim,.opt.chg-anim .seg,.chg-pop{animation:none;}
+}
+
+/* ---------- 我的範本 ---------- */
+.tpl{margin:0.5rem 0 1rem;}
+.tpl > .opt-l{margin-bottom:0.5rem;}
+.tpl-chip{display:inline-flex;align-items:stretch;}
+.tpl-chip .chip{border-top-right-radius:0;border-bottom-right-radius:0;}
+.tpl-x{display:inline-grid;place-items:center;width:1.875rem;padding:0;
+  border:1px solid var(--rule-2);border-left:0;border-radius:0 999px 999px 0;
+  background:var(--surface);color:var(--ink-3);
+  transition:background var(--t-fast) linear,color var(--t-fast) linear;}
+.tpl-x:hover{background:var(--bad-bg);color:var(--bad);}
+.tpl-x .ico{width:0.75rem;height:0.75rem;}
+.chip.tpl-add{display:inline-flex;align-items:center;gap:0.3125rem;
+  border-style:dashed;border-color:var(--accent);color:var(--accent);font-weight:700;}
+.chip.tpl-add:hover{background:var(--accent-bg);color:var(--accent-2);}
+.chip.tpl-add .ico{width:0.8125rem;height:0.8125rem;}
+.tpl-empty{margin:0 0 0.625rem;max-width:40em;font-size:var(--fs-xs);color:var(--ink-3);line-height:1.8;}
+.tpl-save{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin:0 0 0.75rem;
+  padding:0.75rem;border:1px solid var(--rule-2);border-radius:var(--r);background:var(--surface);}
+.tpl-save[hidden]{display:none;}
+.tpl-save label{font-size:var(--fs-xs);font-weight:700;color:var(--ink-2);}
+.tpl-save input{flex:1 1 12rem;min-width:0;padding:0.3125rem 0.625rem;
+  border:1px solid var(--rule-2);border-radius:var(--r);background:var(--paper);color:var(--ink);}
+.tpl-save input:focus{outline:none;border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);}
+.tpl-built summary{display:inline-block;cursor:pointer;padding:0.25rem 0;
+  font-size:var(--fs-xs);color:var(--ink-2);list-style:none;}
+.tpl-built summary::-webkit-details-marker{display:none;}
+.tpl-built summary::before{content:'';display:inline-block;width:0.375rem;height:0.375rem;
+  margin:0 0.5rem 0.125rem 0.125rem;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  rotate:-45deg;transition:rotate var(--t-fast) linear;}
+.tpl-built[open] summary::before{rotate:45deg;}
+.tpl-built summary:hover{color:var(--ink);}
+.tpl-built .chips{margin-top:0.375rem;}
+
+/* ---------- 閱讀對象快速套用 ---------- */
+.aud{display:grid;gap:0.375rem;margin:0.125rem 0 0.5rem;}
+.aud-r{display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem;}
+.aud-a{min-width:3.75em;font-size:var(--fs-xs);font-weight:700;color:var(--ink-2);}
+.aud-src{margin:0.125rem 0 0;max-width:44em;font-size:var(--fs-micro);color:var(--ink-3);line-height:1.75;}
+.aud-src a{color:inherit;text-decoration:underline;text-underline-offset:2px;}
+
+/* ============================================================
+   指令產生器：一頁四段（A 設定、B 開場、C 逐頁／逐鏡、D 收尾）
+   ------------------------------------------------------------
+   逐頁（逐鏡）是一頁一張卡片：寫字和「複製這頁指令」在同一張上。
+   設定裡不常改的收進「更多」，用細線和箭頭分，不做成色塊。
+   ============================================================ */
+.gx-lead{margin:0 0 1rem;max-width:44em;font-size:var(--fs-sm);color:var(--ink-2);line-height:1.85;}
+.gx-tools{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin:0 0 1rem;}
+.gx-all{margin:1.25rem 0 0;}
+.gx-tip{font-size:var(--fs-xs);color:var(--ink-3);}
+
+/* ---------- 設定：範本區、分組標題、收起來的「更多」 ---------- */
+.gx-start{margin:0 0 1.5rem;padding:0 0 1.25rem;border-bottom:1px solid var(--rule);}
+.gx-lbl{margin:0 0 0.4rem;font-size:var(--fs-sm);font-weight:700;}
+.gx-lbl .hint{font-weight:400;color:var(--ink-3);margin-left:0.4375rem;font-size:var(--fs-xs);}
+.gx-start .chips + .gx-lbl{margin-top:0.875rem;}
+.gx-axes{
+  margin:1.25rem 0 0.5rem;padding:1rem 1rem 0.25rem;
+  border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
+}
+.field .opt{margin-bottom:0.5rem;}
+.field .aud{margin-top:0.25rem;}
+
+.gx-more{margin:0.75rem 0 0;border-top:1px solid var(--rule);}
+.gx-more > summary{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:0.25rem 0.5rem;
+  padding:0.875rem 0 0.75rem;cursor:pointer;list-style:none;
+  font-size:var(--fs-sm);font-weight:700;color:var(--ink);
+}
+.gx-more > summary::-webkit-details-marker{display:none;}
+.gx-more > summary::before,.pgc-more > summary::before{
+  content:"";align-self:center;flex:none;width:0.4rem;height:0.4rem;margin:0 0.25rem 0 0.125rem;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  rotate:-45deg;transition:rotate var(--t-fast) linear;
+}
+.gx-more[open] > summary::before,.pgc-more[open] > summary::before{rotate:45deg;}
+.gx-more > summary .hint{font-weight:400;font-size:var(--fs-xs);color:var(--ink-3);}
+/* 收起來的區塊裡有欄位被一鍵套用改到：標題也掛「改了」 */
+.gx-more.has-chg > summary .gx-more-t::after{
+  content:"改了";display:inline-block;margin-left:0.4375rem;padding:0 0.5rem;border-radius:999px;
+  background:var(--chg-hi);color:var(--chg-ink);font-size:var(--fs-micro);font-weight:800;line-height:1.75;
+}
+.gx-more-b{padding:0.25rem 0 0.5rem;}
+/* 欄位裡面的小「更多」（讀者描述）：輕一點，不畫分隔線 */
+.field .gx-more{border-top:none;margin-top:0.375rem;}
+.field .gx-more > summary{padding:0.375rem 0;font-weight:400;font-size:var(--fs-xs);color:var(--ink-2);}
+
+/* ---------- 逐頁／逐鏡卡片 ---------- */
+.pgc-list{display:grid;grid-template-columns:minmax(0,1fr);gap:0.75rem;}
+.pgc{
+  padding:0.75rem 0.875rem 0.625rem;
+  border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
+  transition:border-color var(--t-fast) linear,box-shadow var(--t-fast) linear;
+}
+.pgc:focus-within{border-color:var(--rule-2);box-shadow:0 0 0 1px var(--rule-2);}
+/* 還沒寫字的頁用虛線框，捲一遍就看得出哪幾頁還空著 */
+.pgc.is-empty{border-style:dashed;}
+.pgc-h{display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem 0.625rem;margin:0 0 0.5rem;}
+.pgc-n{font-family:var(--mono);font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;color:var(--accent);}
+.pgc-tags{display:inline-flex;flex-wrap:wrap;gap:0.25rem;}
+.pgc-tags .tag{margin:0;}
+.pgc-act{margin-left:auto;display:inline-flex;}
+.pgc select,.pgc textarea,.pgc input{
+  padding:0.4375rem 0.5625rem;border:1px solid var(--rule-2);border-radius:var(--r);
+  background:var(--surface);color:var(--ink);font-size:var(--fs-sm);line-height:1.7;
+}
+.pgc textarea,.pgc-sub input,.pgc-mini input,.pgc-mini select,.pgc-lay select{width:100%;}
+.pgc textarea{display:block;resize:vertical;}
+.pgc textarea.pgc-text{font-size:var(--fs-body);}
+.pgc select:focus,.pgc textarea:focus,.pgc input:focus{
+  outline:none;border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);}
+.pgc textarea::placeholder,.pgc input::placeholder{color:var(--ink-3);}
+.pgc-h select{max-width:100%;}
+.pgc-h .v-clock{display:inline;margin:0;}
+.pgc-h .v-sec{display:inline-flex;align-items:center;gap:0.25rem;margin:0;}
+.pgc-h .v-sec input{width:4.25rem;}
+.pgc-sub{display:grid;gap:0.375rem;margin-top:0.375rem;}
+.pgc-two{display:grid;gap:0.375rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));}
+.pgc-row3{display:grid;gap:0.375rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));
+  margin:0.25rem 0 0.5rem;}
+.pgc-mini{display:grid;gap:0.2rem;font-size:var(--fs-micro);color:var(--ink-3);}
+.pgc-note{margin:0.25rem 0 0.375rem;font-size:var(--fs-xs);color:var(--ink-3);}
+.pgc-f{display:flex;flex-wrap:wrap;align-items:flex-start;gap:0.5rem 1rem;margin-top:0.625rem;}
+.pgc-more{flex:1 1 12rem;min-width:0;}
+.pgc-more[open]{flex-basis:100%;}
+.pgc-more > summary{
+  display:inline-flex;align-items:center;gap:0.375rem;padding:0.3rem 0;
+  cursor:pointer;list-style:none;font-size:var(--fs-xs);color:var(--ink-2);
+}
+.pgc-more > summary::-webkit-details-marker{display:none;}
+.pgc-more > summary:hover{color:var(--ink);}
+.pgc-lay{margin:0.5rem 0 0.25rem;}
+/* 複製過的按鈕短暫變綠：貼到第幾頁一眼看得出來 */
+.btn.copied,.btn.copied:hover{background:var(--ok);border-color:var(--ok);}
+
+@media (max-width:420px){
+  .pgc{padding:0.625rem 0.625rem 0.5rem;}
+}
+
+@media print{
+  :root{--ui:1;}
+  body{background:#fff;font-size:11pt;}
+  .topbar,.btn,#toast,.pg,.bk-detail,.home-page,.pgc-act{display:none !important;}
+  .main{padding:0;max-width:none;}
+  .card{break-inside:avoid;}
+}
+
+/* ============================================================
+   配色的對比實測（WCAG 2.1，2026-09 換成墨藍之後重算）
+   ------------------------------------------------------------
+   門檻 4.5:1（AA，一般大小的字）。換色票的時候請重算一次，
+   不要只換顏色不算——使用者裡有低視能者。
+
+     內文 ink 對紙 ............ 14.9      內文對卡片面 ........ 16.1
+     次要 ink-2 對紙 ........... 7.6
+     註解 ink-3 對紙 ........... 5.4      對滑過的底 .......... 4.7
+     主色對紙 ................. 7.5      主色對卡片面 ......... 8.1
+     白字壓主色 ............... 8.3      白字壓主色深一階 ..... 11.5
+     主色對自己的淺底 .......... 7.1
+     可以（綠）對紙 ............ 4.8      對自己的底 .......... 4.6
+     不可以（紅）對紙 .......... 5.7      對自己的底 .......... 5.6
+     注意（黃）對紙 ............ 5.3      對自己的底 .......... 5.2
+     改了哪裡：字壓螢光黃 ....... 5.9
+     易學版五個分類色對各自的底 .. 4.7 ～ 6.2
+
+   色相（度）：主色 212、可以 142、不可以 3、注意 38。
+   四個兩兩分得開，色弱的人不會把主要動作看成警告。
+   易學版五個分類：紫 267、綠 132、橙 20、青 178、褐 37，
+   也全部避開主色的 212。
+   ============================================================ */
