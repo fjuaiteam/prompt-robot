@@ -64,6 +64,8 @@ git diff --check
 
 已安裝 Playwright CLI 時，可在啟動本機服務後執行 `playwright-cli -s=v2check open http://127.0.0.1:8765/v2/`，再執行 `playwright-cli -s=v2check run-code --filename=v2/tests/browser-check.js`。測試使用隔離分頁，並攔截外部 AI 開窗及複製，不向 AI 送出內容。測試截圖存於本機資源資料夾。
 
+接著執行 `playwright-cli -s=v2check run-code --filename=v2/tests/studio-check.js`，驗證新版工程編輯器、模式入口、未儲存保護及各種字級／視窗尺寸。測試會重建隔離瀏覽器中的 v2 測試資料，不要對個人瀏覽器執行。
+
 ## 協作
 
 遵循 [團隊 Git 手冊](https://github.com/fjuaiteam/team-git-handbook)、[CONTRIBUTING](CONTRIBUTING.md) 及 [AGENTS](AGENTS.md)。使用短期分支和 PR，由至少一位非作者審查後合併，agent 不自我核准或合併。

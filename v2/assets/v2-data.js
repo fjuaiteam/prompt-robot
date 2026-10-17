@@ -25,6 +25,14 @@
         throw new Error('圖片格式不安全或圖片太大，請重新匯出備份。');
       images[key] = value;
     });
+    const overrides={};
+    if(d.cards.overrides!==undefined){
+      if(!record(d.cards.overrides)||Object.keys(d.cards.overrides).length>600)throw new Error('圖卡文字設定不正確。');
+      Object.entries(d.cards.overrides).forEach(([key,v])=>{
+        if(!/^(hair|top|aid|place|mood|style|act:[a-z0-9-]{1,80}):[a-z0-9-]{1,80}$/i.test(key)||!record(v)||!safeText(v.t,40)||!safeText(v.p,240))throw new Error('圖卡文字設定不正確。');
+        overrides[key]={t:v.t,p:v.p};
+      });
+    }
     const heroIds = new Set();
     const heroes = d.heroes.map(x=>{
       if (!record(x) || !id(x.id) || heroIds.has(x.id) || !safeText(x.name,40) || !record(x.ans) || !record(x.custom))
@@ -56,7 +64,7 @@
       if (!id(key) || !Number.isInteger(value) || Math.abs(value)>10000) throw new Error('圖卡排序格式不正確。');
       order[key]=value;
     });
-    return {cards:{extras,images},heroes,packs,visibility,order};
+    return {cards:{extras,images,overrides},heroes,packs,visibility,order};
   }
   const api={checkedLibrary};
   if(typeof module !== 'undefined' && module.exports) module.exports=api;

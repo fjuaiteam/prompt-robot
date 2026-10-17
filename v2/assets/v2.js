@@ -35,7 +35,9 @@ function v2SaveProject(){
   clearTimeout(v2SaveTimer);
   const p=V2.projects.find(x=>x.id===V2.activeProject);
   if(!p) return true;
-  Object.assign(p,{name:CFG.title.trim()||'未命名作品',medium:medOf(),updated:new Date().toISOString(),data:v2ProjectSnapshot()});
+  const data=v2ProjectSnapshot(),name=CFG.title.trim()||'未命名作品';
+  if(p.name===name&&p.medium===medOf()&&JSON.stringify(p.data)===JSON.stringify(data))return true;
+  Object.assign(p,{name,medium:medOf(),updated:new Date().toISOString(),data});
   return v2Persist();
 }
 function v2Autosave(){ clearTimeout(v2SaveTimer); v2SaveTimer=setTimeout(v2SaveProject,350); }
@@ -402,6 +404,9 @@ async function v2ImportLibrary(file){
     const d=V2Data.checkedLibrary(JSON.parse(await file.text()));
     // 對照實際內建圖卡，拒絕無法使用的活動與人物相依設定。
     const opts=q=>engBuiltins(q).concat(d.cards.extras.filter(x=>x.qid===q));
+    Object.keys(d.cards.overrides).forEach(key=>{const i=key.lastIndexOf(':'),q=key.slice(0,i),id=key.slice(i+1);if(!engBuiltins(q).some(o=>o.id===id))throw new Error('文字設定引用了不存在的內建圖卡。');});
+    const qids=ENG_BASE_CATS.map(q=>q.id).concat(opts('place').map(p=>'act:'+p.id),['mood','style','fix']);
+    qids.forEach(q=>{const list=opts(q);if(list.length&&list.every(o=>d.visibility[engKey(q,o)]===false))throw new Error('每一題至少需要保留一張可選圖卡。');});
     const heroes=V2_DEFAULT_HEROES.concat(d.heroes);
     d.heroes.forEach(h=>['sex','age','hair','top','aid'].forEach(q=>{
       if(h.ans[q]==='other'&&['top','aid'].includes(q)&&h.custom[q]?.trim())return;

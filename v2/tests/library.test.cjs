@@ -26,3 +26,13 @@ test('人物卡和活動包保留必要資料',()=>{
   x.packs=[{id:'pack-test',name:'圖書館活動',heroId:'hero-test',places:['custom-test','custom-test'],style:'crayon',showPrompt:false}];
   const out=checkedLibrary(x);assert.deepEqual(out.packs[0].places,['custom-test']);assert.equal(out.heroes[0].ans.age,'adult');
 });
+test('舊備份補空白文字設定，新備份保留內建文字調整',()=>{
+  const x=sample();assert.deepEqual(checkedLibrary(x).cards.overrides,{});
+  x.cards.overrides={'place:park':{t:'我的公園',p:'有步道的公園',extra:'移除'}};
+  assert.deepEqual(checkedLibrary(x).cards.overrides,{'place:park':{t:'我的公園',p:'有步道的公園'}});
+});
+test('拒絕修改固定角色規則與錯誤文字設定',()=>{
+  for(const overrides of [{'age:adult':{t:'成人',p:'不允許'}},{'place:park':{t:' ',p:'公園'}},[]]){
+    const x=sample();x.cards.overrides=overrides;assert.throws(()=>checkedLibrary(x));
+  }
+});

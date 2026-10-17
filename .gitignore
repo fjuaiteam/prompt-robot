@@ -20,6 +20,7 @@
 !/v[12]/*.txt
 !/v[12]/*.md
 !/v2/design-assets-manifest.json
+/v2/design-qa.md
 !/v2/tests/
 /v2/tests/*
 !/v2/tests/*.cjs
@@ -60,6 +61,8 @@
 !/v2/assets/illustrations/
 /v2/assets/illustrations/*
 !/v2/assets/illustrations/style-comparison.png
+!/v2/assets/illustrations/workspace-book.png
+!/v2/assets/illustrations/workspace-video.png
 **/.env
 **/.env.*
 **/*.pem

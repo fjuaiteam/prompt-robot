@@ -33,7 +33,7 @@ const ENG_BASE_CATS = [
   {id:'aid',   t:'隨身物品或輔具',add:true,hint:'例如：戴紅色帽子，背黑色背包'},
   {id:'place', t:'地方',       add:true,  hint:'例如：圖書館，旁邊有書架'},
 ];
-const ENG_EMPTY = ()=>({ extras:[], images:{} });
+const ENG_EMPTY = ()=>({ extras:[], images:{}, overrides:{} });
 function engLoad(){
   const d = store.get('e_engineer', null);
   if (!d || !Array.isArray(d.extras) || !d.images || typeof d.images !== 'object') return ENG_EMPTY();
@@ -46,7 +46,11 @@ function engLoad(){
     if (typeof v === 'string' && /^data:image\/(?:png|jpeg|webp);base64,/.test(v) && v.length < 900000)
       images[k.slice(0,180)] = v;
   });
-  return {extras, images};
+  const overrides={};
+  if(d.overrides&&typeof d.overrides==='object')Object.entries(d.overrides).forEach(([key,v])=>{
+    if(/^(hair|top|aid|place|mood|style|act:[a-z0-9-]{1,80}):[a-z0-9-]{1,80}$/i.test(key)&&v&&typeof v.t==='string'&&v.t.trim()&&typeof v.p==='string'&&v.p.trim())overrides[key]={t:v.t.slice(0,40),p:v.p.slice(0,240)};
+  });
+  return {extras, images, overrides};
 }
 let ENG = engLoad();
 let ENG_CAT = 'place';
