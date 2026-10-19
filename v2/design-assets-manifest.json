@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "direction": "沿用 v1 的 Neutral 黑白視覺、Lucide 圖示與本機字型。採用上一輪 UX 檢視的任務入口、一次一題與確認答案原則。",
+  "references": [
+    {"url":"https://design-system.service.gov.uk/patterns/question-pages/","use":"一次處理一件事、清楚上下步","copiedCode":false},
+    {"url":"https://design-system.service.gov.uk/patterns/check-answers/","use":"完成前摘要與直接修改","copiedCode":false},
+    {"url":"https://www.w3.org/WAI/WCAG2/supplemental/patterns/o1p03-consistent-design/","use":"一致的控制位置","copiedCode":false}
+  ],
+  "assets": [{
+    "path":"assets/illustrations/style-comparison.png",
+    "source":"內建 ImageGen 生成的單張 2x2 畫風比較圖",
+    "date":"2026-10-16",
+    "use":"同場景的蠟筆、卡通、線條、水彩成品示例",
+    "prompt":"Exactly a 2 by 2 grid of four equal square panels, no gutters, borders, text or watermark. Same adult East Asian person with short black hair, muted red shirt, dark blue trousers, white shoes, seated full body on a park bench, rounded green tree on left, ivory background. Top left soft crayon/colored pencil grain; top right flat cartoon dark outlines; bottom left simple line illustration; bottom right light watercolor. Realistic adult proportions, generous inner margins, same framing.",
+    "license":"AI 生成素材供本專案使用；不代表整體專案授權變更。"
+  }],
+  "studioRevision": {
+    "date":"2026-10-17",
+    "selectedTargets":["工作人員首頁：清晰工作室","易學版：安心選擇","工程模式：圖卡工坊"],
+    "source":"本對話中使用者核准的三張 ImageGen 視覺稿；原稿另存本機資源/UI視覺稿，不提交 Git。",
+    "implementation":"沿用原生 HTML/CSS/JavaScript、Microsoft JhengHei 中文與 Geist 拉丁字型，以及既有 Lucide 圖示和 ARASAAC 圖卡。新增深青綠重點色、續作層次、明確選取狀態、單圖卡編輯器。沒有複製外部元件或新增依賴。",
+    "assets":[
+      {"path":"assets/illustrations/workspace-book.png","source":"內建 ImageGen","date":"2026-10-17","use":"讀物類型示意，明確標示非使用者成品","prompt":"One 600x360 landscape illustration, approximately 5:3. A clearly adult East Asian man with short black hair, red shirt and dark backpack, standing at a bus stop and facing a blue-gray city bus. Friendly clean storybook illustration, soft shading, natural adult proportions. Man in left third, bus to right, quiet trees and sidewalk, generous safe margins. No text, logos, watermark, UI or extra people. Reference: approved staff-home mockup thumbnail style.","generatedSize":"1619x971","license":"AI 生成素材供本專案使用；不變更整體專案授權。"},
+      {"path":"assets/illustrations/workspace-video.png","source":"內建 ImageGen","date":"2026-10-17","use":"影片類型示意，明確標示非使用者成品","prompt":"Single 600x360 landscape type-example thumbnail, approximately 5:3. One clearly adult East Asian man with short black hair wearing blue, seated at dining table drinking from a clear glass of water. Bright tidy home with sofa and potted plant. Friendly calm polished storybook illustration, cream and muted blue-green palette. Adult proportions, hand-to-glass action recognizable at 128x80. No text, letters, logos, watermark, UI or frame. Reference: approved staff-home mockup thumbnail style.","generatedSize":"1619x971","license":"AI 生成素材供本專案使用；不變更整體專案授權。"}
+    ]
+  },
+  "uxRevision": {
+    "date": "2026-10-19",
+    "source": "本機三角色實際操作稽核與已檢視截圖（資源/使用者測試/2026-10-19；僅留本機）",
+    "implementation": "保留原生架構與已核准視覺；補人物卡單人示意、圖像完整呈現、表單草稿保留、手動交接／交付確認、備份與還原。無新增依賴。",
+    "assets": [
+      {
+        "path": "assets/illustrations/hero-adult-short.png",
+        "source": "內建 ImageGen（人物選擇用單人示意）",
+        "date": "2026-10-19",
+        "prompt": "Use case: scientific-educational. Asset type: accessible easy-read character choice illustration, a single square image. Subject: one adult East Asian man, age about 30, short straight black hair, plain red short-sleeved shirt, dark navy trousers, no glasses or accessories. Only one person, front-facing, neutral friendly expression, centered from head to upper thighs, arms relaxed beside body. Clean flat editorial educational illustration, simple dark outlines, solid color fills, no textures or decorative background. Plain white background, generous margin around head and sides, clothing and hairstyle clearly readable at 96px thumbnail. Natural adult proportions, never childlike. No other people, no text, letters, labels, logos, frames or watermarks.",
+        "license": "AI 生成素材供本專案使用；不變更整體專案授權。"
+      },
+      {
+        "path": "assets/illustrations/hero-adult-tail.png",
+        "source": "內建 ImageGen（人物選擇用單人示意）",
+        "date": "2026-10-19",
+        "prompt": "Use case: scientific-educational. Asset type: accessible easy-read character choice illustration, a single square image. Subject: one adult East Asian woman, age about 30, long black hair tied into a clearly visible ponytail, plain blue short-sleeved shirt, dark navy trousers, no glasses or accessories. Only one person, front-facing, neutral friendly expression, centered from head to upper thighs, arms relaxed beside body. Clean flat editorial educational illustration, simple dark outlines, solid color fills, no textures or decorative background. Plain white background, generous margin around head and sides, clothing and hairstyle clearly readable at 96px thumbnail. Natural adult proportions, never childlike. No other people, no text, letters, labels, logos, frames or watermarks.",
+        "license": "AI 生成素材供本專案使用；不變更整體專案授權。"
+      },
+      {
+        "path": "assets/illustrations/hero-older-glasses.png",
+        "source": "內建 ImageGen（人物選擇用單人示意）",
+        "date": "2026-10-19",
+        "prompt": "Use case: scientific-educational. Asset type: accessible easy-read character choice illustration, a single square image. Subject: one older East Asian man, age about 70, short gray hair, clearly visible round eyeglasses, plain green short-sleeved shirt, dark navy trousers, no other accessories. Only one person, front-facing, neutral friendly expression, centered from head to upper thighs, arms relaxed beside body. Clean flat editorial educational illustration, simple dark outlines, solid color fills, no textures or decorative background. Plain white background, generous margin around head and sides, clothing and hairstyle clearly readable at 96px thumbnail. Natural adult proportions, never childlike. No other people, no text, letters, labels, logos, frames or watermarks.",
+        "license": "AI 生成素材供本專案使用；不變更整體專案授權。"
+      }
+    ]
+  },
+  "dependenciesAdded":[]
+}

@@ -2,6 +2,8 @@
 
 此文件記錄系統附帶素材，不為整體專案授予統一開源授權。
 
+下表的 assets 路徑分別相對於 v1/ 與 v2/，兩版均保留原有授權文字。v2 新增的畫風比較圖由內建 ImageGen 生成，詳細用途與提示詞見 v2/design-assets-manifest.json。
+
 | 素材 | 來源與授權 | 本地說明 |
 | --- | --- | --- |
 | ARASAAC 圖卡 | Sergio Palao／ARASAAC；西班牙亞拉岡自治區政府所有；CC BY-NC-SA，非商業用途、標示來源、相同方式分享 | `assets/easy/pics/圖片來源與授權.txt` |
