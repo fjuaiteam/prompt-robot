@@ -1,0 +1,125 @@
+========================================
+  易學版　選項圖片：來源與授權
+========================================
+
+
+■ 一定要標示的那一段
+
+  這個資料夾裡原有的 PNG 圖是 ARASAAC 的溝通圖卡，
+  新增的 photo-*.jpg 真人照片另用 Pexels 授權，
+  詳見「真人照片來源與授權.txt」。下面的條款適用於 ARASAAC 圖卡。
+  用它們的時候，成品上要標示下面這段（缺一不可）：
+
+    圖片作者：Sergio Palao
+    來源：ARASAAC（https://arasaac.org）
+    授權：創用 CC（姓名標示－非商業性－相同方式分享）
+    圖片所有權：西班牙亞拉岡自治區政府（Gobierno de Aragón）
+
+  平台的「使用說明.txt」裡已經寫了這一段。
+  如果你們把易學版印成講義、放進簡報或上傳網站，那份資料上也要寫。
+
+
+■ 可以做什麼、不可以做什麼
+
+  可以　　社工教學、課程、研習、給案主用、印成教材，全部免費。
+  可以　　自己修改（換顏色、裁切），但改完要用同一個授權放出來。
+  不可以　商業用途。不能拿去賣，也不能放進要收費的產品或服務裡。
+  不可以　拿掉來源標示。
+
+  這一版的易學版是免費教學工具，所以沒問題。
+  哪天要變成收費的東西，這些圖就要全部換掉。
+
+
+■ 為什麼選 ARASAAC
+
+  它是專門為認知障礙、溝通障礙者做的圖卡系統，全世界特教和 AAC
+  （輔助溝通）都在用，不是一般的裝飾用圖示。
+  線條粗、顏色明確、一張圖只講一件事——這正是易讀指南對圖片的要求。
+
+
+■ 這 58 張圖是哪幾張
+
+  檔名對應 ARASAAC 的圖卡編號。要看原圖或換一張，把編號接在
+  https://arasaac.org/pictograms/zh_TW/ 後面就能開，例如
+  https://arasaac.org/pictograms/zh_TW/2326
+
+  home-pic           11238
+  who-m              4744
+  who-f              4745
+  age-kid            6975
+  age-teen           10206
+  age-adult          6887
+  age-old            21008
+  hair-short         28807
+  hair-long          38535
+  hair-tail          5429
+  hair-curly         38534
+  aid-glasses        3329
+  aid-wheelchair     6212
+  aid-walker         24850
+  place-home         6964
+  place-park         30609
+  place-hosp         3116
+  place-bus          2262
+  place-food         32408
+  place-mart         3389
+  act-home-brush     2326
+  act-home-eat       28669
+  act-home-tv        29123
+  act-home-dish      30967
+  act-park-walk      29951
+  act-park-rest      11373
+  act-park-stretch   10156
+  act-park-dog       9016
+  act-hosp-reg       31328
+  act-hosp-wait      24633
+  act-hosp-talk      2467
+  act-hosp-bp        8235
+  act-bus-card       28173
+  act-bus-sit        25082
+  act-bus-bell       31488
+  act-bus-hold       36903
+  act-food-menu      32514
+  act-food-eat       38057
+  act-food-pay       6457
+  act-food-chat      6517
+  act-mart-cart      28665
+  act-mart-pick      39753
+  act-mart-line      35187
+  act-mart-pay       2677
+  mood-happy         35533
+  mood-nervous       30391
+  mood-sad           35545
+  mood-angry         35539
+  style-crayon       4951
+  style-cartoon      7807
+  style-line         10313
+  style-water        2523
+  fix-person         4628
+  fix-extra          5508
+  fix-text           34361
+  fix-body           2928
+  fix-act            37163
+  fix-cut            2591
+
+
+■ 想換掉某一張
+
+  1. 去 https://arasaac.org 搜尋（可以用中文搜），找到喜歡的圖。
+  2. 下載 PNG，檔名改成上面那個名字（例如 place-park.png），
+     蓋掉這個資料夾裡的舊檔。
+  3. 重新整理易學版就換好了，不用改程式。
+
+  圖檔是 300×300 的 PNG、背景透明。自己畫的、自己用 AI 生的也可以放，
+  檔名對就好（.png 或 .jpg 都支援）。
+
+
+■ 哪幾張還可以更好
+
+  ・畫風那 4 張（style-crayon / cartoon / line / water）現在放的是
+    蠟筆、麥克筆、鋼筆、水彩筆的圖。它們代表「工具」，不是「畫出來長怎樣」。
+    最理想的是用那 4 種畫風各畫同一個東西（例如一顆蘋果）當範例，
+    做法見同資料夾的「圖片清單與指令.txt」。
+  ・「哪裡不對」那 6 張（fix-*）是抽象概念，圖卡本來就不好表達，
+    現在是搭配文字看。案主如果看不懂，就由陪同的人唸。
+  ・act-bus-card 是「上公車」的圖，不是台灣的悠遊卡感應動作。

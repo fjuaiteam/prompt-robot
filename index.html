@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>兒童讀物提示詞機器人｜工作人員教學平台</title>
+<link rel="stylesheet" href="assets/fonts/noto-serif-tc.css">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/easy.css">
+<link rel="stylesheet" href="assets/read.css">
+<link rel="stylesheet" href="assets/theme.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='38' fill='none' stroke='black' stroke-width='6'/><ellipse cx='50' cy='50' rx='16' ry='38' fill='none' stroke='black' stroke-width='6'/></svg>">
+</head>
+<body class="is-home">
+
+<div class="app">
+
+  <aside class="ws-sidebar" id="app-sidebar" aria-label="主導覽"></aside>
+  <dialog class="ws-drawer" id="ws-drawer" aria-label="主導覽"></dialog>
+  <div class="ws-content">
+
+  <!-- 工作人員版共用工作台導覽；易學版使用自己的抬頭 -->
+  <header class="topbar" id="topbar" hidden>
+    <button type="button" class="ws-toggle" data-ws-toggle aria-label="開啟或收合主導覽" aria-controls="app-sidebar" aria-expanded="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+    </button>
+    <button class="back" data-v="home">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4L6 10l6 6"/></svg>
+      回首頁
+    </button>
+    <span class="sep"></span>
+    <span class="crumb" id="crumb"></span>
+    <span class="tb-tools">
+      <span class="mode-sw" role="group" aria-label="切換版本">
+        <button type="button" data-mode="pro" aria-pressed="true">工作人員版</button>
+        <button type="button" data-mode="easy" aria-pressed="false">易學版</button>
+      </span>
+      <span class="uiscale" id="ui-top"></span>
+      <button type="button" class="btn sm ws-create" data-v="gen">＋ 做一份指令</button>
+    </span>
+  </header>
+
+  <main class="main">
+    <section class="view" id="view-home"></section>
+    <section class="view" id="view-prin"></section>
+    <section class="view" id="view-gen"></section>
+    <section class="view" id="view-fix"></section>
+    <section class="view" id="view-res"></section>
+    <section class="view" id="view-ref"></section>
+    <section class="view" id="view-care"></section>
+    <section class="view" id="view-vid"></section>
+    <section class="view" id="view-read"></section>
+    <!-- 易學版（easy.js） -->
+    <section class="view" id="view-e-home"></section>
+    <section class="view" id="view-e-pic"></section>
+    <section class="view" id="view-e-read"></section>
+    <section class="view" id="view-e-engineer"></section>
+  </main>
+
+  </div>
+
+</div>
+
+<div id="lb"><button class="x">✕</button><img alt=""></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- Three.js r148 UMD（本機檔案，離線可用；classic script 才能在 file:// 下載入） -->
+<script src="assets/vendor/three.min.js"></script>
+<script src="assets/orb.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/easy-data.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/easy.js"></script>
+<script src="assets/read.js"></script>
+</body>
+</html>

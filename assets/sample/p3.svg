@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297"
+     width="210mm" height="297mm" role="img" aria-label="我可以問問題">
+  <defs>
+    <pattern id="grain" width="3" height="3" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.26" fill="#d8d1c3" opacity="0.55"/>
+      <circle cx="2.4" cy="2.2" r="0.18" fill="#d8d1c3" opacity="0.4"/>
+    </pattern>
+  </defs>
+  <rect width="210" height="297" fill="#f7f4ee"/>
+  <rect width="210" height="297" fill="url(#grain)"/>
+  <g fill="none" stroke="#2f3a42" stroke-width="1.05"
+     stroke-linecap="round" stroke-linejoin="round">
+    <rect x="15" y="58" width="92" height="66" rx="6" fill="#e7f0e7" stroke="#5f8f63"/>
+    <text x='24' y='78' font-family='"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC","Segoe UI",system-ui,sans-serif' font-size='11' font-weight='700' fill='#2f3a42' stroke='none' text-anchor='start'>我可以問問題。</text>
+    <text x='24' y='96' font-family='"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC","Segoe UI",system-ui,sans-serif' font-size='11' font-weight='700' fill='#2f3a42' stroke='none' text-anchor='start'>我可以請醫師再說一次。</text>
+    <text x='24' y='114' font-family='"Noto Sans TC","Microsoft JhengHei UI","Microsoft JhengHei","PingFang TC","Segoe UI",system-ui,sans-serif' font-size='11' font-weight='700' fill='#2f3a42' stroke='none' text-anchor='start'>我聽不懂沒有關係。</text>
+    <circle cx="31" cy="140" r="8.5" fill="#e7f0e7" stroke="#5f8f63"/>
+    <path d="M26.8 140 l3.2 3.6 l6.2 -7.4" stroke="#5f8f63" stroke-width="1.7"/>
+    <path d="M71.7 155.2 Q84.0 150.8 96.3 155.2 L97.0 209.4 L71.0 209.4 Z" fill="#ffffff"/><path d="M71.7 155.2 Q84.0 150.8 96.3 155.2 L97.0 209.4 L71.0 209.4 Z"/><path d="M80.5 153.9 L84.0 166.5 L87.5 153.9" fill="#dce9f2"/><line x1="84.0" y1="166.5" x2="84.0" y2="209.4"/><line x1="91.7" y1="157.7" x2="91.7" y2="169.1"/><rect x="88.2" y="169.1" width="6.9" height="9.1" rx="1" fill="#ffffff"/><rect x="88.2" y="169.1" width="6.9" height="9.1" rx="1"/>
+    <path d="M78.0 209.4 L77.0 256.0"/><line x1="73.3" y1="256.0" x2="80.8" y2="256.0"/><path d="M90.0 209.4 L91.0 256.0"/><line x1="87.2" y1="256.0" x2="94.7" y2="256.0"/>
+    <path d="M72.6 159.0 Q66.3 175.4 70.1 190.5"/><circle cx="70.1" cy="190.5" r="3.3" fill="#f3e3d6"/><circle cx="70.1" cy="190.5" r="3.3"/>
+    <path d="M95.4 159.0 Q101.7 175.4 97.9 190.5"/><circle cx="97.9" cy="190.5" r="3.3" fill="#f3e3d6"/><circle cx="97.9" cy="190.5" r="3.3"/>
+    <g transform="rotate(0 84.0 139.4)"><circle cx="84.0" cy="139.4" r="7.9" fill="#f3e3d6"/><circle cx="84.0" cy="139.4" r="7.9"/><path d="M76.1 138.3 A7.9 7.9 0 0 1 91.9 138.3 L90.8 135.5 Q84.0 129.5 77.2 135.5 Z" fill="#2f3a42" stroke="none"/><circle cx="80.8" cy="140.1" r="0.8" fill="#2f3a42" stroke="none"/><circle cx="87.2" cy="140.1" r="0.8" fill="#2f3a42" stroke="none"/><path d="M81.8 143.8 Q84.0 145.8 86.2 143.8"/></g><line x1="84.0" y1="147.4" x2="84.0" y2="153.9"/>
+    <path d="M137.7 155.2 Q150.0 150.8 162.3 155.2 L163.0 195.5 L137.0 195.5 Z" fill="#dce9f2"/><path d="M137.7 155.2 Q150.0 150.8 162.3 155.2 L163.0 195.5 L137.0 195.5 Z"/>
+    <path d="M144.0 195.5 L143.0 256.0"/><line x1="139.3" y1="256.0" x2="146.8" y2="256.0"/><path d="M156.0 195.5 L157.0 256.0"/><line x1="153.2" y1="256.0" x2="160.7" y2="256.0"/>
+    <path d="M138.6 159.0 Q132.3 175.4 136.1 190.5"/><circle cx="136.1" cy="190.5" r="3.3" fill="#f3e3d6"/><circle cx="136.1" cy="190.5" r="3.3"/>
+    <path d="M161.4 159.0 Q179.0 151.4 174.0 133.8"/><ellipse cx="174.0" cy="129.4" rx="3.8" ry="2.3" fill="#ffffff"/><ellipse cx="174.0" cy="129.4" rx="3.8" ry="2.3"/><circle cx="174.0" cy="133.8" r="3.3" fill="#f3e3d6"/><circle cx="174.0" cy="133.8" r="3.3"/>
+    <g transform="rotate(0 150.0 139.4)"><circle cx="150.0" cy="139.4" r="7.9" fill="#f3e3d6"/><circle cx="150.0" cy="139.4" r="7.9"/><path d="M142.1 138.3 A7.9 7.9 0 0 1 157.9 138.3 L156.8 135.5 Q150.0 129.5 143.2 135.5 Z" fill="#2f3a42" stroke="none"/><rect x="143.5" y="138.7" width="4.9" height="3.7" rx="1.1"/><rect x="151.6" y="138.7" width="4.9" height="3.7" rx="1.1"/><line x1="148.4" y1="140.5" x2="151.6" y2="140.5"/><path d="M147.8 143.8 Q150.0 145.8 152.2 143.8"/></g><line x1="150.0" y1="147.4" x2="150.0" y2="153.9"/>
+  </g>
+</svg>
