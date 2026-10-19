@@ -4,14 +4,14 @@
 function studioThumb(p){
   return `<figure class="studio-thumb"><img src="assets/illustrations/workspace-${p.medium==='video'?'video':'book'}.png" alt="${p.medium==='video'?'影片':'讀物'}類型示意，非此作品成品" width="600" height="360"><figcaption>類型示意</figcaption></figure>`;
 }
-function studioProjectMeta(p){return `${p.medium==='video'?'影片':'讀物'} · ${p.data?.[p.medium==='video'?'vscript':'script']?.length||0} ${p.medium==='video'?'鏡':'頁'} · ${v2HumanDate(p.updated)} 儲存`;}
+function studioProjectMeta(p){return `${p.medium==='video'?'影片':'讀物'} · ${p.data?.[p.medium==='video'?'vscript':'script']?.length||0} ${p.medium==='video'?'鏡腳本':'頁腳本'} · ${v2HumanDate(p.updated)} 儲存 · ${v2ProjectState(p)}`;}
 function studioHome(){
   v2SaveProject();
   const recent=[...V2.projects].sort((a,b)=>String(b.updated).localeCompare(String(a.updated)));
   const active=recent.find(p=>p.id===V2.activeProject)||recent[0];
   $('#view-home').innerHTML=`<div class="v2-home studio-home">
     <p class="v2-eyebrow">教材工作台</p><h1 tabindex="-1">今天，接著完成你的教材。</h1>
-    <p class="v2-lead">從上次的進度開始，或建立一份新作品。</p>
+    <p class="v2-lead">本站準備腳本與指令；在外部 AI 完成素材，再用文件或影片工具排版交付。</p>
     ${active?`<section class="studio-continue" aria-labelledby="studio-continue-title"><div class="v2-section-title"><h2 id="studio-continue-title">繼續上次的作品</h2><span>上次儲存：${v2HumanDate(active.updated)}</span></div><div class="studio-resume">${studioThumb(active)}<div><h2>${esc(active.name)}</h2><p>${studioProjectMeta(active)}</p></div><button class="btn" data-v2="open-project" data-id="${esc(active.id)}">繼續製作${I.right}</button></div></section>`:
     '<section class="studio-welcome"><h2>從第一份教材開始</h2><p>先選讀物或影片，設定對象，再一步步規劃內容。</p></section>'}
     <section aria-labelledby="studio-new-title"><div class="v2-section-title"><h2 id="studio-new-title">開始新作品</h2><div class="studio-shortcuts"><button class="btn ghost" data-v2="easy">${hubIco('gen')}畫一張圖片</button><button class="btn ghost" data-v="read">${READ_ICON}文件轉易讀</button></div></div><div class="v2-tasks">
@@ -20,8 +20,9 @@ function studioHome(){
       <button type="button" data-v="activities">${LU.cap}<b>準備活動</b><span>先選人物與場景，讓活動更聚焦。</span>${I.right}</button>
     </div></section>
     <section class="v2-projects"><div class="v2-section-title"><h2>我的作品</h2><span>${recent.length} 份 · 此瀏覽器自動儲存</span></div>
-      ${recent.length?`<div class="v2-project-list">${recent.map(p=>`<article>${studioThumb(p)}<div class="studio-project-copy"><h3>${esc(p.name)}</h3><p>${studioProjectMeta(p)}</p></div><div class="v2-row-actions"><button class="btn sm ghost" data-v2="open-project" data-id="${esc(p.id)}">${p.medium==='video'?LU.video:LU.book}開啟</button><details class="studio-more"><summary aria-label="${esc(p.name)}的更多操作">更多</summary><div><button class="btn ghost" data-v2="export-project" data-id="${esc(p.id)}">${I.down}匯出作品</button><button class="btn ghost studio-danger" data-v2="delete-project" data-id="${esc(p.id)}">${I.trash}刪除作品</button></div></details></div></article>`).join('')}</div>`:'<p class="studio-no-project">還沒有作品。建立後會顯示在這裡，可隨時接著做。</p>'}
-    </section><p class="v2-local">作品保存在此瀏覽器，換電腦前請先匯出備份。縮圖是教材類型示意，不是 AI 成品。</p></div>`;
+      ${recent.length?`<div class="v2-project-list">${recent.map(p=>`<article>${studioThumb(p)}<div class="studio-project-copy"><h3>${esc(p.name)}</h3><p>${studioProjectMeta(p)}</p></div><div class="v2-row-actions"><button class="btn sm ghost" data-v2="open-project" data-id="${esc(p.id)}">${p.medium==='video'?LU.video:LU.book}開啟</button><details class="studio-more"><summary aria-label="${esc(p.name)}的更多操作">更多</summary><div><button class="btn ghost" data-v2="export-project" data-id="${esc(p.id)}">${I.down}下載設定與腳本備份</button><button class="btn ghost studio-danger" data-v2="delete-project" data-id="${esc(p.id)}">${I.trash}刪除作品</button></div></details></div></article>`).join('')}</div>`:'<p class="studio-no-project">還沒有作品。建立後會顯示在這裡，可隨時接著做。</p>'}
+    </section>${v2BackupPanel()}<p class="v2-local">作品保存在此瀏覽器，換電腦前請先下載備份。縮圖是教材類型示意，不是 AI 成品。</p></div>`;
+  v2WireBackups($('#view-home'));
   $('#view-home h1').focus({preventScroll:true});
 }
 v2RenderHome=studioHome;VIEWS.home=studioHome;VIEW_NAME.home='工作人員版';VIEW_NAME.cards='工程模式';
@@ -111,7 +112,7 @@ function studioRenderCards(){
   const editor=STUDIO_NEW||selected?studioEditor(selected):'<div class="studio-editor"><h2>這一題還沒有圖卡</h2><p>按「新增圖卡」加入第一張。</p></div>';
   host.innerHTML=`<div class="studio-library"><div class="studio-card-main"><header class="studio-card-head"><h1 tabindex="-1">管理選項圖卡</h1><p>調整圖片與描述，讓選項更符合這次活動。</p></header>
     <div class="studio-card-toolbar"><label class="studio-cat-select">要管理哪一題？<select data-eng-cat>${engCats().map(c=>`<option value="${esc(c.id)}" ${c.id===cat.id?'selected':''}>${esc(c.t)}</option>`).join('')}</select></label><h2>${esc(cat.t)}</h2><div><label class="studio-search">搜尋圖卡<input type="search" id="v2-card-search" value="${esc(V2_CARD_QUERY)}" placeholder="搜尋圖卡"></label>${cat.add?'<button class="btn ghost" data-studio="new">'+I.plus+'新增圖卡</button>':''}</div></div>
-    <p class="v2-library-error" id="v2-library-status" role="status">${esc(V2_LIBRARY_ERROR)}</p>
+    <p class="${V2_LIBRARY_FAILED?'v2-library-error':'v2-library-success'}" id="v2-library-status" role="status">${esc(V2_LIBRARY_ERROR)}</p>
     <section class="eng-grid studio-card-grid" aria-label="${esc(cat.t)}圖卡">${all.map(o=>{const key=engKey(cat.id,o),shown=V2.visibility[key]!==false;return `<button type="button" class="eng-card studio-card" data-studio="select" data-id="${esc(o.id)}" aria-pressed="${!STUDIO_NEW&&o.id===STUDIO_SELECTED}" ${o.t.toLocaleLowerCase().includes(V2_CARD_QUERY.toLocaleLowerCase())?'':'hidden'}>${ePic(engMark(cat.id,o))}<span><h3>${esc(o.t)}</h3><small>${ENG.extras.some(x=>x.id===o.id)?'自訂':'內建'}${shown?'':' · 已隱藏'}</small></span><span class="studio-card-check" aria-hidden="true">${LU.ok}</span></button>`;}).join('')}</section><p id="studio-search-empty" class="studio-helper" hidden>找不到圖卡，請換個關鍵字。</p>
     ${selected&&!STUDIO_NEW?`<div class="studio-order"><span>調整「${esc(selected.t)}」順序</span><button class="btn ghost" data-v2="card-move" data-id="${esc(selected.id)}" data-direction="-1" ${all[0]===selected?'disabled':''}>${I.left}往前移</button><button class="btn ghost" data-v2="card-move" data-id="${esc(selected.id)}" data-direction="1" ${all.at(-1)===selected?'disabled':''}>往後移${I.right}</button></div>`:''}
     <details class="studio-backups" id="studio-backups"><summary>備份與使用者預覽</summary><div class="v2-library-tools"><button class="btn ghost" data-v2="export-library">${I.down}匯出圖卡與活動</button><label class="btn ghost v2-file-label">${I.up}匯入備份<input type="file" id="v2-library-file" accept=".json,application/json" aria-label="匯入圖卡與活動備份"></label><button class="btn ghost" data-v2="toggle-preview">${V2_CARD_PREVIEW?'收起預覽':'預覽使用者選項'}</button><button class="btn ghost" data-v="activities">設定活動包</button></div>${V2_CARD_PREVIEW?`<section class="v2-card-preview"><h2>使用者會看到的圖卡</h2><div class="e-opts">${all.filter(o=>V2.visibility[engKey(cat.id,o)]!==false).map(o=>eOpt(engMark(cat.id,o),false,'disabled')).join('')}</div></section>`:''}</details>

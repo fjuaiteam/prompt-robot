@@ -19,6 +19,11 @@ let v2SaveTimer;
 let V2_LIBRARY_ERROR = '';
 let V2_CARD_QUERY = '';
 let V2_PACK_EDIT = null;
+let V2_HERO_EDIT = null;
+const V2_PACK_DRAFTS = new Map();
+let V2_HERO_DRAFT = null;
+let V2_HERO_DIRTY = false;
+let V2_LIBRARY_FAILED = false;
 let V2_CARD_PREVIEW = false;
 const v2Uid = prefix => prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);
 const v2Heroes = ()=>V2_DEFAULT_HEROES.concat(V2.heroes);
@@ -31,14 +36,31 @@ function v2Persist(){
 function v2ProjectSnapshot(){
   return {cfg:{...CFG},script:SCRIPT.map(x=>({...x})),vscript:VSCRIPT.map(x=>({...x}))};
 }
+const v2ActiveProject=()=>V2.projects.find(p=>p.id===V2.activeProject);
+function v2Progress(p=v2ActiveProject()){
+  try{return V2Data.checkedProgress(p?.progress);}catch(e){return V2Data.checkedProgress();}
+}
+function v2SetProgress(change){
+  if(!v2SaveProject())return false;
+  const p=v2ActiveProject();if(!p)return false;
+  const previous=p.progress;p.progress={...v2Progress(p),...change};
+  if(!v2Persist()){p.progress=previous;return false;}return true;
+}
+function v2ProjectState(p){const progress=v2Progress(p);return progress.delivered?'已確認可交付（自行確認）':progress.imagesReady?'外部素材已完成（自行確認）':progress.sent.length?'交接中・尚未確認成品':'腳本草稿・尚未確認成品';}
+function v2PendingRows(){
+  const video=medOf()==='video',rows=video?VSCRIPT:SCRIPT;
+  const samples=['如果遇到……，我應該...','下面這些我都知道了嗎？知道的可以打勾：','我都有遵守下面的規則嗎？做到的人可以打勾：'];
+  return rows.flatMap((r,i)=>!String((video?r.action:r.text)||'').trim()||!video&&samples.includes((r.text||'').trim())?[i+1]:[]);
+}
 function v2SaveProject(){
   clearTimeout(v2SaveTimer);
   const p=V2.projects.find(x=>x.id===V2.activeProject);
   if(!p) return true;
   const data=v2ProjectSnapshot(),name=CFG.title.trim()||'未命名作品';
   if(p.name===name&&p.medium===medOf()&&JSON.stringify(p.data)===JSON.stringify(data))return true;
-  Object.assign(p,{name,medium:medOf(),updated:new Date().toISOString(),data});
-  return v2Persist();
+  const before={...p};
+  Object.assign(p,{name,medium:medOf(),updated:new Date().toISOString(),data,progress:V2Data.checkedProgress()});
+  if(!v2Persist()){Object.assign(p,before);return false;}return true;
 }
 function v2Autosave(){ clearTimeout(v2SaveTimer); v2SaveTimer=setTimeout(v2SaveProject,350); }
 const v2OldSaveCfg=saveCfg,v2OldSaveScript=saveScript,v2OldSaveVScript=saveVScript;
@@ -104,6 +126,7 @@ function v2RenderLearn(){
 /* 工作人員產生器：保留原本事件與欄位，只重新安排四個工作階段。 */
 const v2OriginalRenderGen=renderGen;
 renderGen=function(){
+  v2SaveProject();
   v2OriginalRenderGen();
   const host=$('#view-gen');
   const step=Math.max(0,Math.min(3,Number(V2.genStep)||0));V2.genStep=step;
@@ -111,16 +134,22 @@ renderGen=function(){
   $('.page-head p',host).textContent=(medOf()==='video'?'影片':'讀物')+'工作流程・內容會自動儲存';
   $('.ph-kick',host)?.remove();
   const sections=$$('.gx-sec',host),order=[0,2,1,3];
-  const names=['設定對象','規劃內容','交給 AI','檢查與匯出'];
+  const names=['設定對象','規劃內容','交給 AI','排版與交付檢查'];
   const nav=document.createElement('nav');nav.className='v2-stepper';nav.setAttribute('aria-label','作品製作步驟');
   nav.innerHTML=names.map((name,i)=>`<button type="button" data-v2="gen-step" data-step="${i}" ${i===step?'aria-current="step"':''}><span>${i+1}</span>${name}</button>`).join('');
   $('.page-head',host).after(nav);
   order.forEach((n,i)=>{sections[n].hidden=i!==step;sections[n].dataset.v2Stage=i;$('.step-n',sections[n]).textContent=String(i+1);});
   if(step===0){
-    const hint=document.createElement('p');hint.className='v2-stage-hint';hint.textContent='先填書名或片名與主角。範例可以幫你起步，其他設定之後仍能修改。';sections[0].prepend(hint);
+    const settings=$('#gx-1'),templates=$('.tpl',settings);
+    if(templates){const detail=document.createElement('details');detail.className='v2-reference';detail.innerHTML='<summary>使用範例或我的範本</summary>';settings.append(detail);detail.append(templates);}
+    const hint=document.createElement('p');hint.className='v2-stage-hint';hint.textContent='本站準備設定、腳本與指令 → 在外部 AI 產生圖片／影片 → 用 Word 或影片工具排版交付。先確認讀者、作品名稱與主角。';sections[0].prepend(hint);
   }
   const summary=document.createElement('p');summary.id='v2-gen-status';summary.className='v2-stage-status';summary.setAttribute('role','status');summary.textContent=v2GenStatus();nav.after(summary);
   if(step===2)v2MountHandoff(sections[1]);
+  if(step===3){
+    const panel=document.createElement('section');panel.className='v2-completion';const progress=v2Progress();
+    panel.innerHTML=`<h3>成品在哪裡？下一步做什麼？</h3><p>本站不會自動產生或收回圖片、影片與 PDF。請在外部 AI 完成素材，再依下方說明排版。</p><label><input type="checkbox" data-v2="confirm-images" ${progress.imagesReady?'checked':''}>我已在外部工具完成並檢查素材（自行確認）</label><label><input type="checkbox" data-v2="confirm-delivery" ${progress.delivered?'checked':''}>我已完成排版與交付檢查（自行確認）</label><p role="status" id="v2-completion-status">修改設定或腳本後，交接紀錄與完成確認會重設，請重新核對。</p>`;sections[3].prepend(panel);
+  }
   const footer=document.createElement('nav');footer.className='v2-flow-nav';footer.setAttribute('aria-label','製作步驟導覽');
   footer.innerHTML=`<button class="btn ghost" data-v2="gen-prev">${I.left}${step===0?'回工作台':'上一步'}</button>${step<3?`<button class="btn" data-v2="gen-next">${names[step+1]}${I.right}</button>`:'<button class="btn" data-v="ref">打開交付檢查表'+I.right+'</button>'}`;
   host.append(footer);
@@ -132,9 +161,9 @@ renderGen=function(){
 function v2GenStatus(){
   if(V2.genStep===0)return CFG.title.trim()?'已填作品名稱，接著確認讀者與主角。':'請先填作品名稱。';
   const rows=medOf()==='video'?VSCRIPT:SCRIPT;
-  if(V2.genStep===1)return rows.length?`已有 ${rows.length} ${medOf()==='video'?'鏡':'頁'}。可以增減或調整順序。`:'還沒有內容，先新增一頁／一鏡，或套用骨架。';
+  if(V2.genStep===1){const pending=v2PendingRows();return rows.length?`已有 ${rows.length} ${medOf()==='video'?'鏡腳本':'頁腳本'}。${pending.length?'請檢查第 '+pending.join('、')+' 頁／鏡的空白或骨架示例內容。':'交接前請逐項檢查腳本。'}`:'還沒有內容，先新增一頁／一鏡，或套用骨架。';}
   if(V2.genStep===2)return '先確認內容，再選要交給 AI 的一段。開啟 AI 後仍須自己送出。';
-  return '請在下方查看排版與匯出步驟，並用檢查表核對成果。';
+  return '外部素材完成後，依下方說明排版；確認成果後再自行標記可交付。';
 }
 function v2GenMove(step,validate){
   if(validate&&V2.genStep===0&&(!CFG.title.trim()||!CFG.hero.trim())){
@@ -152,13 +181,26 @@ function v2MountHandoff(section){
   const summary=document.createElement('summary');summary.textContent='第一次開始：查看開場與角色設定指令';details.append(summary);
   section.append(details);details.append(intro);
   const box=document.createElement('section');box.className='v2-ai-panel';
-  const rows=medOf()==='video'?VSCRIPT:SCRIPT;
-  box.innerHTML=`<h3>把這一段交給 AI</h3><p>第一次先完成下面的開場指令，再依序製作每頁／每鏡。</p>
+  const rows=medOf()==='video'?VSCRIPT:SCRIPT,progress=v2Progress(),pending=v2PendingRows();
+  box.innerHTML=`<h3>把這一段交給 AI</h3><p>第一次開新對話，之後在<strong>同一個 ChatGPT 對話</strong>依序貼上。複製不等於送出；請到 ChatGPT 確認並按送出。</p>
+    ${pending.length?`<div class="v2-content-review"><p>第 ${pending.join('、')} 頁／鏡仍有空白或骨架示例。請先修改，或確認你要保留這些內容。</p><button class="btn ghost" data-v2="plan-confirm" aria-pressed="${progress.planReviewed}">${progress.planReviewed?'已自行確認待完成內容':'我已檢查，保留這些內容繼續'}</button><button class="btn ghost" data-v2="gen-step" data-step="1">回去修改</button></div>`:''}
     <label for="v2-prompt-select">要交接的內容</label><select id="v2-prompt-select"><option value="intro">開場：第 1 段</option><option value="character">角色設定：第 2 段</option>${rows.map((r,i)=>`<option value="${i}">第 ${i+1} ${medOf()==='video'?'鏡':'頁'}・${esc((r.text||r.line||r.scene||'未填內容').slice(0,22))}</option>`).join('')}</select>
-    <div class="v2-row-actions"><button class="btn" data-v2="gen-ai">複製並開啟 ChatGPT${I.right}</button><button class="btn ghost" data-v2="gen-copy">只複製</button></div><p id="v2-ai-status" role="status"></p><details><summary>查看將交出的完整提示詞</summary><textarea id="v2-ai-text" readonly aria-label="完整提示詞"></textarea></details>`;
+    <div class="v2-row-actions"><button class="btn" data-v2="gen-ai">複製並開啟 ChatGPT${I.right}</button><button class="btn ghost" data-v2="gen-copy">只複製</button></div><p id="v2-ai-status" role="status"></p>
+    <div class="v2-row-actions"><button class="btn ghost" data-v2="mark-sent">我已在同一對話送出這段</button><button class="btn ghost" data-v2="next-prompt">前往下一段</button></div><p id="v2-sent-status" role="status"></p>
+    <details class="v2-sent-list"><summary>查看交接紀錄（自行確認）</summary><ol id="v2-sent-list"></ol></details><details><summary>查看將交出的完整提示詞</summary><textarea id="v2-ai-text" readonly aria-label="完整提示詞"></textarea></details><p>修改設定或腳本會重設送出紀錄，避免沿用舊內容的確認。</p>`;
   $('.v2-stage-hint',section)?.remove();section.prepend(box);
-  $('#v2-prompt-select').onchange=()=>{$('#v2-ai-text').value=v2SelectedPrompt();$('#v2-ai-status').textContent='';};
+  const select=$('#v2-prompt-select');if([...select.options].some(o=>o.value===progress.selected))select.value=progress.selected;
+  select.onchange=()=>{v2SetProgress({selected:select.value});v2RefreshHandoff();$('#v2-ai-status').textContent='';};
+  v2RefreshHandoff();
+}
+function v2RefreshHandoff(){
+  const select=$('#v2-prompt-select');if(!select)return;
+  const progress=v2Progress(),sent=progress.sent.includes(select.value);
+  $('[data-v2=gen-ai]').textContent=select.value==='intro'&&!progress.sent.length?'複製並開啟新的 ChatGPT 對話':'複製這段，回原對話貼上';
   $('#v2-ai-text').value=v2SelectedPrompt();
+  $('[data-v2=mark-sent]').textContent=sent?'取消這段的送出確認':'我已在同一對話送出這段';$('[data-v2=mark-sent]').setAttribute('aria-pressed',String(sent));
+  $('#v2-sent-status').textContent=`已自行確認 ${progress.sent.filter(key=>[...select.options].some(o=>o.value===key)).length} / ${select.options.length} 段送出；目前這段${sent?'已確認送出':'尚未確認送出'}。`;
+  $('#v2-sent-list').innerHTML=[...select.options].map(o=>`<li>${progress.sent.includes(o.value)?'已確認送出':'尚未確認'}：${esc(o.textContent)}</li>`).join('');
 }
 function v2SelectedPrompt(){
   const value=$('#v2-prompt-select')?.value||'intro';
@@ -208,10 +250,16 @@ function v2HeroAvailable(hero){
     return o && (o.id!=='other'||!!hero.custom[q]?.trim());
   });
 }
-function v2HeroPicture(hero){const age=byId(EASY_AGE,hero.ans.age);return ePic(age?{...age,photo:null}:null);}
+function v2HeroSummary(hero){return ['age','hair','top','aid'].map(q=>hero.ans[q]==='other'?hero.custom[q]:q==='aid'&&hero.ans[q]==='none'?'無輔具':(v2OriginalEpOpts(q).find(o=>o.id===hero.ans[q])?.t||'')+(q==='top'?'衣服':'')).filter(Boolean).join('・');}
+function v2HeroPreset(hero){return V2_DEFAULT_HEROES.find(h=>['sex','age','hair','top','aid'].every(q=>h.ans[q]===hero.ans[q]&&!ENG.overrides?.[q+':'+hero.ans[q]]));}
+function v2HeroPicture(hero){
+  const match=v2HeroPreset(hero);
+  if(match)return `<span class="e-pic ok v2-person-picture" aria-hidden="true"><img src="assets/illustrations/hero-${match.id}.png" alt=""></span>`;
+  return '<span class="e-pic v2-person-summary" aria-hidden="true">文字<br>設定</span>';
+}
 function v2CharacterScreen(){
   return {html:`<h2 class="e-h2" tabindex="-1">今天想畫哪個人物？</h2><p class="e-hint">選一張人物卡，或自己設定。</p>
-    <div class="v2-hero-options">${v2Heroes().filter(v2HeroAvailable).map(h=>`<button type="button" class="v2-hero-card" data-v2="choose-hero" data-id="${esc(h.id)}">${v2HeroPicture(h)}<b>${esc(h.name)}</b><span>${esc(byId(EASY_TOP,h.ans.top)?.t||'自訂')}衣服${h.ans.aid!=='none'?'・'+esc(byId(EASY_AID,h.ans.aid)?.t||'有隨身物品'):''}</span>${I.right}</button>`).join('')}</div>
+    <div class="v2-hero-options">${v2Heroes().filter(v2HeroAvailable).map(h=>`<button type="button" class="v2-hero-card" data-v2="choose-hero" data-id="${esc(h.id)}">${v2HeroPicture(h)}<b>${esc(h.name)}</b><span>${esc(v2HeroSummary(h))}</span><small>${v2HeroPreset(h)?'人物示意，請以設定為準':'此人物依文字設定，沒有示意圖'}</small>${I.right}</button>`).join('')}</div>
     <button class="e-btn ghost" data-v2="custom-hero">自己設定人物</button>`,prev:'回首頁',next:null};
 }
 function v2Flow(){return EASY_QS.filter(q=>!(EP.guided&&['sex','age','hair','top','aid'].includes(q.id))&&!(v2Pack()&&q.id==='style'));}
@@ -220,7 +268,8 @@ const v2OriginalQ=scrQ;
 scrQ=function(qid){
   const screen=v2OriginalQ(qid);
   if(v2Pack()&&qid==='place'){
-    const box=document.createElement('div');box.innerHTML=screen.html;$('.e-other',box)?.remove();screen.html=box.innerHTML;
+    const box=document.createElement('div');box.innerHTML=screen.html;$('.e-other',box)?.remove();
+    const hint=$('.e-q>.e-hint',box);if(hint)hint.textContent='今天先從活動準備好的地方選一個。';screen.html=box.innerHTML;
   }
   return screen;
 };
@@ -235,16 +284,26 @@ const v2OriginalPrompt=scrPrompt;
 scrPrompt=function(){return {html:`<h2 class="e-h2" tabindex="-1">內容已經準備好了</h2><p class="v2-sentence">${esc(v2Sentence())}</p><details class="v2-reference"><summary>看完整指令</summary><pre class="e-prompt">${segHtml(epSegs(EP.ans))}</pre></details>`,prev:'回去確認',next:'請 AI 畫圖片'};};
 scrGive=function(){
   return {html:`<h2 class="e-h2" tabindex="-1">${EP.gave?'回來確認圖片':'準備請 AI 畫圖'}</h2>
-    <p class="e-hint">${EP.gave?'看到圖片後，再按下面的按鈕。':'按一下，複製指令並開啟 ChatGPT。'}</p>
+    <p class="e-hint">${EP.gave?'圖片會在 ChatGPT 出現。看到後，再回到這裡。':'接下來會到另一個網站 ChatGPT。它會幫你畫圖，這裡不會直接出現圖片。'}</p>
     <p class="v2-sentence">${esc(v2Sentence())}</p>
     <div class="v2-handoff-card"><button class="e-btn e-big" data-e="give">${I.copy}${EP.gave?'再開啟 ChatGPT':'把提示詞帶到 ChatGPT'}</button>
       <p class="v2-handoff-status" id="v2-easy-status" role="status">${EP.gave?'已準備交接。圖片還需要在 ChatGPT 產生。':'到了 ChatGPT，確認輸入框有字，再按送出。'}</p></div>
     ${EP.gave?'<button class="e-btn e-big" data-v2="image-ready">我看到圖片了'+I.right+'</button>':''}
-    <div class="v2-help-actions"><button class="e-btn ghost" data-v2="handoff-help" data-kind="open">沒有打開</button><button class="e-btn ghost" data-v2="handoff-help" data-kind="paste">不知道怎麼貼上</button><button class="e-btn ghost" data-e="copyprompt">只複製指令</button></div>
-    <div id="v2-easy-help" class="v2-help" role="status" hidden></div>
+    <div class="v2-help-actions"><button class="e-btn ghost" data-v2="handoff-help" data-kind="open">沒有打開</button><button class="e-btn ghost" data-v2="handoff-help" data-kind="paste">不知道怎麼貼上</button><button class="e-btn ghost" data-v2="handoff-help" data-kind="support">請工作人員陪我</button><button class="e-btn ghost" data-e="copyprompt">只複製指令</button></div>
+    <section id="v2-easy-help" class="v2-help" role="region" aria-labelledby="v2-help-title" hidden></section>
     <details class="v2-reference"><summary>看完整指令／手動複製</summary><textarea class="v2-manual-prompt" readonly aria-label="繪圖指令">${esc(epText())}</textarea></details>
     <p class="e-hint v2-return-hint">等圖片畫好，回到瀏覽器的「易學版」分頁。</p>`,prev:'回去確認',next:null};
 };
+let V2_HELP_STEP=0,V2_HELP_KIND='paste';
+function v2ShowEasyHelp(kind,step=0){
+  const box=$('#v2-easy-help');if(!box)return;box.hidden=false;V2_HELP_STEP=step;V2_HELP_KIND=kind;
+  if(kind==='paste'){
+    const steps=[['先複製要貼上的指令','按下面的「只複製指令」，再按「下一個動作」。'],['到 ChatGPT 貼上','在 ChatGPT 的輸入框長按，或按滑鼠右鍵，選「貼上」。'],['送出後，再回到這裡','確認輸入框有字，再按送出。等圖片出現，回到這個易學版分頁。']];
+    box.innerHTML=`<h3 id="v2-help-title" tabindex="-1">${step+1} / 3　${steps[step][0]}</h3><p>${steps[step][1]}</p>${step===0?'<button class="e-btn ghost" data-e="copyprompt">只複製指令</button>':''}<div class="v2-row-actions">${step?'<button class="e-btn ghost" data-v2="help-prev">上一個動作</button>':''}${step<2?'<button class="e-btn" data-v2="help-next">下一個動作</button>':'<button class="e-btn ghost" data-v2="help-close">我知道了</button>'}</div>`;
+  }else if(kind==='support')box.innerHTML='<h3 id="v2-help-title" tabindex="-1">可以請工作人員陪你</h3><p>告訴工作人員：「我選好了，請陪我到 ChatGPT 畫圖，再一起回來看。」</p><p>你的選擇會保留在這裡，不用重新選。請不要告訴別人你的密碼。</p><button class="e-btn ghost" data-v2="help-close">留在這裡等工作人員</button>';
+  else box.innerHTML='<h3 id="v2-help-title" tabindex="-1">先打開 ChatGPT</h3><p>按下面的按鈕，到另一個網站。打開後，回這裡看「不知道怎麼貼上」。</p><a class="e-btn ghost" href="https://chatgpt.com/" target="_blank" rel="noopener">另行開啟 ChatGPT</a>';
+  $('#v2-help-title').focus({preventScroll:true});box.scrollIntoView({block:'center'});
+}
 epRender=function(){
   const host=eShell('e-pic','做一張圖');
   epClean();
@@ -256,6 +315,8 @@ epRender=function(){
   const valid=['character','sum','prompt','give','check','done','fixpick','fix'];
   if(qIndex(EP.at)<0&&!valid.includes(EP.at))EP.at='sum';
   const s=EP.at==='character'?v2CharacterScreen():epScreen(EP.at);
+  const optionCount=(qIndex(EP.at)>=0?epOpts(EP.at):[]).filter(o=>!o.custom).length;
+  if(optionCount>2)s.html+=`<p class="v2-more-options">共有 ${optionCount} 個選項，可以往下看。</p>`;
   const flow=v2Flow(),idx=flow.findIndex(q=>q.id===EP.at);
   const stage=EP.at==='character'||qIndex(EP.at)>=0?0:EP_STAGE[EP.at];
   const count=idx>=0?`第 ${idx+1} 題，共 ${flow.length} 題`:undefined;
@@ -322,12 +383,60 @@ eClick=function(e){
 };
 VIEWS['e-pic']=epRender;VIEWS['e-home']=renderEHome;
 
+function v2BackupPanel(){return `<details class="v2-backup-panel" ${V2_LIBRARY_ERROR?'open':''}><summary>備份與還原</summary><p>只保存在這個瀏覽器；以下兩種備份範圍不同，都不含外部 AI 圖片、影片或 PDF 成品。</p><div class="v2-backup-grid"><section><h3>作品設定與腳本 (.json)</h3><p>在作品的「更多」下載個別作品備份。還原會新增一份作品，不覆蓋現有作品；不匯入個人範本。</p><label class="btn ghost v2-file-label">還原作品備份<input type="file" data-v2-restore-project accept=".json,application/json" aria-label="還原作品備份"></label></section><section><h3>人物、活動與圖卡 (.json)</h3><p>含自訂圖片與設定，不含作品清單。還原前會確認是否取代目前的圖卡與活動。</p><button class="btn ghost" data-v2="export-library">下載圖卡與活動備份</button><label class="btn ghost v2-file-label">還原圖卡與活動<input type="file" data-v2-restore-library accept=".json,application/json" aria-label="還原圖卡與活動"></label></section></div><p class="${V2_LIBRARY_FAILED?'v2-library-error':'v2-library-success'}" role="status">${esc(V2_LIBRARY_ERROR)}</p><p data-v2-project-import-status role="status"></p></details>`;}
+function v2WireBackups(host){
+  $('[data-v2-restore-project]',host)?.addEventListener('change',e=>v2ImportProject(e.target.files?.[0]));
+  $('[data-v2-restore-library]',host)?.addEventListener('change',e=>v2ImportLibrary(e.target.files?.[0]));
+}
+async function v2ImportProject(file){
+  if(!file)return;
+  const status=$('.view.on [data-v2-project-import-status]');
+  try{
+    if(file.size>5*1024*1024)throw new Error('檔案超過 5 MB，請選作品設定與腳本備份。');
+    const raw=JSON.parse(await file.text()),d=checkedBackup(raw);
+    if(!d.cfg||!Array.isArray(d.script)||!Array.isArray(d.vscript)||d.script.length>500||d.vscript.length>500)throw new Error('請選含設定與腳本的完整作品備份，每種腳本最多 500 頁／鏡。');
+    const progress=V2Data.checkedProgress(raw.progress);
+    if(V2.projects.length>=50)throw new Error('已達 50 份作品，請先備份並整理作品。');
+    if(!v2SaveProject())return;
+    const data={cfg:{...DEFAULTS,...d.cfg},script:d.script,vscript:d.vscript};
+    const id=v2Uid('project'),project={id,name:data.cfg.title.trim()||'還原的作品',medium:data.cfg.medium,updated:new Date().toISOString(),data,progress};
+    const workspace={...V2,projects:[project,...V2.projects],activeProject:id,genStep:0};
+    store.writeAll({...data,workspace});V2=workspace;CFG=data.cfg;SCRIPT=data.script;VSCRIPT=data.vscript;PG_OPEN.clear();VS_OPEN.clear();
+    modeSet('pro');go('home');toast('備份已還原為新作品，原有作品未受影響。');
+  }catch(e){if(status){status.textContent='無法還原：'+(e.message||'檔案格式錯誤');status.className='v2-library-error';}else toast('無法還原作品：'+e.message);}
+}
+function v2LibraryFeedback(){
+  const view=document.body.dataset.view;
+  if(view==='home')v2RenderHome();else if(view==='activities')v2RenderActivities();else v2RenderCards();
+}
 function v2OptionList(q,selected){return v2OriginalEpOpts(q).filter(x=>!x.custom).map(x=>`<option value="${esc(x.id)}" ${x.id===selected?'selected':''}>${esc(x.t)}</option>`).join('');}
+function v2PeopleHtml(){return v2Heroes().map(h=>`<div>${v2HeroPicture(h)}<span><b>${esc(h.name)}</b><small>${esc(v2HeroSummary(h))}</small></span><button type="button" class="btn sm ghost" data-v2="edit-hero" data-id="${esc(h.id)}" aria-label="${V2.heroes.includes(h)?'編輯':'檢視並另存'}人物卡 ${esc(h.name)}">${V2.heroes.includes(h)?'編輯':'檢視／另存'}</button>${V2.heroes.includes(h)?`<button type="button" class="btn sm ghost" data-v2="delete-hero" data-id="${esc(h.id)}" aria-label="刪除人物卡 ${esc(h.name)}">刪除</button>`:''}</div>`).join('');}
+function v2RefreshPeople(){
+  const select=$('#v2-pack-form [name=hero]'),current=select?.value;
+  if(select)select.innerHTML=v2Heroes().filter(v2HeroAvailable).map(h=>`<option value="${esc(h.id)}" ${h.id===current?'selected':''}>${esc(h.name)}</option>`).join('');
+  const list=$('.v2-people-list');if(list)list.innerHTML=v2PeopleHtml();
+}
+function v2FillHeroForm(hero,copy=false){
+  const form=$('#v2-hero-form');if(!form)return;
+  V2_HERO_EDIT=V2.heroes.includes(hero)?hero.id:null;
+  const h=hero||{name:'',ans:{sex:'m',age:'adult',hair:'short',top:'red',aid:'none'},custom:{}};
+  $('[name=name]',form).value=copy?(h.name+'（副本）').slice(0,40):h.name;
+  ['sex','age','hair','top','aid'].forEach(q=>{
+    const select=$('[name='+q+']',form);select.innerHTML=v2OptionList(q,h.ans[q]);
+    if(h.ans[q]==='other')select.insertAdjacentHTML('beforeend',`<option value="other" selected>自訂：${esc(h.custom[q]||'請重新選擇')}</option>`);
+  });
+  $('h3',form).textContent=V2_HERO_EDIT?'編輯人物卡':hero?'另存人物卡':'新增常用人物';
+  $('[type=submit]',form).textContent=V2_HERO_EDIT?'儲存人物變更':'新增人物卡';
+  $('[data-v2=cancel-hero]',form).hidden=!hero;$('#v2-hero-error').textContent='';
+  V2_HERO_DRAFT=hero?{...structuredClone(h),name:$('[name=name]',form).value}:null;
+  V2_HERO_DIRTY=false;
+}
 function v2RenderActivities(){
   const editing=v2Packs().find(x=>x.id===V2_PACK_EDIT),host=$('#view-activities');
-  const p=editing||{name:'',heroId:'adult-short',places:['park'],style:'crayon',showPrompt:false};
+  const draftKey=V2_PACK_EDIT||'new';
+  const p=V2_PACK_DRAFTS.get(draftKey)||editing||{name:'',heroId:'adult-short',places:['park'],style:'crayon',showPrompt:false};
   const places=v2OriginalEpOpts('place').filter(x=>!x.custom);
-  host.innerHTML=`<div class="page-head"><p class="v2-eyebrow">帶領前的準備</p><h1 tabindex="-1">活動與人物卡</h1><p>先準備人物和可選場景，再讓使用者自己選擇。</p></div>
+  host.innerHTML=`<div class="page-head"><p class="v2-eyebrow">帶領前的準備</p><h1 tabindex="-1">活動與人物卡</h1><p>人物卡是預設角色；活動包決定這次可選的地方與畫風。使用情境名稱，不填真實個資。</p></div>${v2BackupPanel()}
     <section><div class="v2-section-title"><h2>選一份活動開始</h2><button class="btn ghost" data-v2="free-activity">自由選擇模式</button></div><div class="v2-pack-grid">${v2Packs().map(pack=>`<article><span class="v2-kicker">${pack.places.length} 個場景・${esc(byId(v2OriginalEpOpts('style'),pack.style)?.t||'自訂畫風')}</span><h3>${esc(pack.name)}</h3><p>${esc(v2Heroes().find(h=>h.id===pack.heroId)?.name||'人物待設定')}</p><div class="v2-row-actions"><button class="btn" data-v2="start-pack" data-id="${esc(pack.id)}">開始活動${I.right}</button><button class="btn ghost" data-v2="edit-pack" data-id="${esc(pack.id)}">${V2.packs.includes(pack)?'編輯':'另存調整'}</button>${V2.packs.includes(pack)?`<button class="btn ghost" data-v2="delete-pack" data-id="${esc(pack.id)}">刪除</button>`:''}</div></article>`).join('')}</div></section>
     <div class="v2-preparation"><form id="v2-pack-form" class="v2-form"><h2>${editing?'調整活動':'新增活動包'}</h2><p>只會顯示這次需要的地方，動作會跟著地方出現。</p>
       <label>活動名稱<input name="name" maxlength="60" required value="${esc(p.name)}" placeholder="例如：今天一起去公園"></label>
@@ -336,9 +445,16 @@ function v2RenderActivities(){
       <label>這次使用的畫風<select name="style">${v2OptionList('style',p.style)}</select></label>
       <label class="v2-check-label"><input type="checkbox" name="prompt" ${p.showPrompt?'checked':''}>保留「看指令」教學步驟</label>
       <p id="v2-pack-error" role="alert"></p><div class="v2-row-actions"><button class="btn" type="submit">${editing&&!V2.packs.includes(editing)?'另存為新活動':'儲存活動'}</button>${editing?'<button class="btn ghost" type="button" data-v2="cancel-pack">取消調整</button>':''}</div>
-    </form><section class="v2-form"><h2>人物卡</h2><p>使用情境名稱即可，例如「戴眼鏡的大人」。</p><div class="v2-people-list">${v2Heroes().map(h=>`<div>${v2HeroPicture(h)}<span>${esc(h.name)}</span>${V2.heroes.includes(h)?`<button type="button" class="btn sm ghost" data-v2="delete-hero" data-id="${esc(h.id)}" aria-label="刪除人物卡 ${esc(h.name)}">刪除</button>`:'<span class="v2-muted">內建</span>'}</div>`).join('')}</div>
-      <form id="v2-hero-form"><h3>新增常用人物</h3><label>人物卡名稱<input name="name" maxlength="40" required placeholder="例如：穿白襯衫的大人"></label><div class="v2-field-grid">${[['sex','男生／女生'],['age','年齡'],['hair','頭髮'],['top','衣服'],['aid','隨身物品或輔具']].map(([q,name])=>`<label>${name}<select name="${q}">${v2OptionList(q,q==='age'?'adult':q==='aid'?'none':null)}</select></label>`).join('')}</div><p id="v2-hero-error" role="alert"></p><button class="btn" type="submit">新增人物卡</button></form>
+    </form><section class="v2-form"><h2>人物卡</h2><p>可核對或調整設定；內建人物需另存副本。變更自訂人物會套用至下次開始的相關活動，不改目前進行中的選擇。</p><div class="v2-people-list">${v2PeopleHtml()}</div>
+      <form id="v2-hero-form"><h3>新增常用人物</h3><label>人物卡名稱<input name="name" maxlength="40" required placeholder="例如：穿白襯衫的大人"></label><div class="v2-field-grid">${[['sex','男生／女生'],['age','年齡'],['hair','頭髮'],['top','衣服'],['aid','隨身物品或輔具']].map(([q,name])=>`<label>${name}<select name="${q}">${v2OptionList(q,q==='age'?'adult':q==='aid'?'none':null)}</select></label>`).join('')}</div><p id="v2-hero-error" role="alert"></p><div class="v2-row-actions"><button class="btn" type="submit">新增人物卡</button><button type="button" class="btn ghost" data-v2="cancel-hero" hidden>取消人物調整</button></div></form>
     </section></div>`;
+  const packForm=$('#v2-pack-form');
+  packForm.oninput=packForm.onchange=()=>{const fd=new FormData(packForm);V2_PACK_DRAFTS.set(draftKey,{name:String(fd.get('name')),heroId:fd.get('hero'),places:fd.getAll('places'),style:fd.get('style'),showPrompt:fd.has('prompt')});};
+  const heroDraft=V2_HERO_DRAFT,heroEdit=V2_HERO_EDIT,heroDirty=V2_HERO_DIRTY;v2FillHeroForm(heroDraft);V2_HERO_EDIT=heroEdit;V2_HERO_DIRTY=heroDirty;
+  if(heroEdit){$('#v2-hero-form h3').textContent='編輯人物卡';$('#v2-hero-form [type=submit]').textContent='儲存人物變更';}
+  const heroForm=$('#v2-hero-form');
+  heroForm.oninput=heroForm.onchange=()=>{const fd=new FormData(heroForm),custom=V2_HERO_DRAFT?.custom||{};V2_HERO_DRAFT={name:String(fd.get('name')),ans:Object.fromEntries(['sex','age','hair','top','aid'].map(q=>[q,fd.get(q)])),custom};V2_HERO_DIRTY=true;};
+  v2WireBackups(host);
   $('#v2-pack-form').onsubmit=e=>{
     e.preventDefault();const form=e.target,fd=new FormData(form),selected=fd.getAll('places');
     if(!String(fd.get('name')).trim()||!selected.length){$('#v2-pack-error').textContent='請填活動名稱，並至少選一個地方。';return;}
@@ -347,16 +463,19 @@ function v2RenderActivities(){
     const item={id,name:String(fd.get('name')).trim(),heroId:fd.get('hero'),places:selected,style:fd.get('style'),showPrompt:fd.has('prompt')};
     const before=structuredClone(V2);V2.packs=V2.packs.filter(x=>x.id!==id).concat(item);
     if(!v2Persist()){V2=before;return;}
-    V2_PACK_EDIT=null;v2RenderActivities();toast('活動已儲存，可以開始帶領了');
+    V2_PACK_DRAFTS.delete(draftKey);V2_PACK_EDIT=null;v2RenderActivities();toast('活動已儲存，可以開始帶領了');
   };
-  $('#v2-hero-form').onsubmit=e=>{
+  $('#v2-hero-form').onsubmit=async e=>{
     e.preventDefault();const fd=new FormData(e.target),name=String(fd.get('name')).trim();
     if(!name){$('#v2-hero-error').textContent='請填人物卡名稱。';return;}
-    if(V2.heroes.length>=80){toast('最多可保存 80 張人物卡。');return;}
-    const hero={id:v2Uid('hero'),name,ans:{},custom:{}};
+    if(V2.heroes.length>=80&&!V2_HERO_EDIT){toast('最多可保存 80 張人物卡。');return;}
+    const uses=V2.packs.filter(p=>p.heroId===V2_HERO_EDIT).length;
+    if(uses&&!await eAsk(`這張人物卡用於 ${uses} 份活動。變更會在下次開始活動時套用，要儲存嗎？`,'繼續編輯','儲存人物變更'))return;
+    const before=structuredClone(V2.heroes);
+    const hero={id:V2_HERO_EDIT||v2Uid('hero'),name,ans:{},custom:{...V2_HERO_DRAFT?.custom}};
     ['sex','age','hair','top','aid'].forEach(q=>hero.ans[q]=fd.get(q));
-    V2.heroes.push(hero);if(!v2Persist()){V2.heroes.pop();return;}
-    v2RenderActivities();toast('人物卡新增好了');
+    V2.heroes=V2.heroes.filter(h=>h.id!==hero.id).concat(hero);if(!v2Persist()){V2.heroes=before;return;}
+    v2RefreshPeople();v2FillHeroForm(null);toast('人物卡已儲存，旁邊的活動草稿已保留。');
   };
 }
 function v2StartPack(id){
@@ -376,7 +495,7 @@ function v2RenderCards(){
   const visible=all.filter(o=>o.t.toLocaleLowerCase().includes(query));
   host.innerHTML=`<div class="page-head"><p class="v2-eyebrow">帶領前的準備</p><h1 tabindex="-1">圖卡管理</h1><p>整理好選項，再到活動包決定這次要用哪些場景。</p></div>
     <div class="v2-library-tools"><button class="btn ghost" data-v2="export-library">${I.down}匯出圖卡與活動</button><label class="btn ghost v2-file-label">${I.up}匯入備份<input type="file" id="v2-library-file" accept=".json,application/json" aria-label="匯入圖卡與活動備份"></label><button class="btn ghost" data-v="activities">設定活動包</button></div>
-    <p class="v2-library-error" id="v2-library-status" role="status">${esc(V2_LIBRARY_ERROR)}</p>
+    <p class="${V2_LIBRARY_FAILED?'v2-library-error':'v2-library-success'}" id="v2-library-status" role="status">${esc(V2_LIBRARY_ERROR)}</p>
     <div class="v2-card-toolbar"><label>要管理哪一題？<select data-eng-cat>${engCats().map(x=>`<option value="${esc(x.id)}" ${x.id===cat.id?'selected':''}>${esc(x.t)}</option>`).join('')}</select></label><label>搜尋這一題的圖卡<input type="search" id="v2-card-search" value="${esc(V2_CARD_QUERY)}" placeholder="輸入名稱"></label><button class="btn ghost" data-v2="toggle-preview">${V2_CARD_PREVIEW?'回到管理':'預覽使用者選項'}</button></div>
     ${V2_CARD_PREVIEW?`<section class="v2-card-preview"><h2>使用者會看到的圖卡</h2><p>活動包還會依設定篩選地方。</p><div class="e-opts" data-n="${all.length}">${all.filter(o=>V2.visibility[engKey(cat.id,o)]!==false).map(o=>eOpt(engMark(cat.id,o),false,'disabled')).join('')}</div></section>`:
       `<section class="eng-grid" aria-label="${esc(cat.t)}圖卡">${visible.map(o=>{
@@ -419,8 +538,8 @@ async function v2ImportLibrary(file){
     if(!ok)return;
     const next={...V2,heroes:d.heroes,packs:d.packs,visibility:d.visibility,order:d.order,activePack:null};
     store.writeAll({e_engineer:d.cards,workspace:next,e_pic:v2NewPicture()});
-    ENG=d.cards;V2=next;EP=v2NewPicture();V2_LIBRARY_ERROR='備份匯入完成。作品清單未受影響。';ENG_EDIT=null;ENG_PENDING_IMAGE='';v2RenderCards();
-  }catch(e){V2_LIBRARY_ERROR='無法匯入：'+(e.message||'檔案格式錯誤');v2RenderCards();}
+    ENG=d.cards;V2=next;EP=v2NewPicture();V2_LIBRARY_ERROR='備份匯入完成。作品清單未受影響。';V2_LIBRARY_FAILED=false;ENG_EDIT=null;ENG_PENDING_IMAGE='';V2_PACK_DRAFTS.clear();V2_PACK_EDIT=null;V2_HERO_EDIT=null;V2_HERO_DRAFT=null;V2_HERO_DIRTY=false;v2LibraryFeedback();
+  }catch(e){V2_LIBRARY_ERROR='無法匯入：'+(e.message||'檔案格式錯誤');V2_LIBRARY_FAILED=true;v2LibraryFeedback();}
 }
 VIEWS.activities=v2RenderActivities;VIEWS.cards=v2RenderCards;
 VIEWS['e-engineer']=()=>{modeSet('pro');go('cards');};
@@ -438,7 +557,7 @@ document.addEventListener('click',async e=>{
       case 'new-video':return v2NewProject('video');
       case 'open-project':return v2OpenProject(b.dataset.id);
       case 'export-project':{
-        v2SaveProject();const p=V2.projects.find(x=>x.id===b.dataset.id);if(p)download('提示詞作品-'+p.name.replace(/[\\/:*?"<>|]/g,'-')+'.json',JSON.stringify(p.data,null,2));return;
+        if(!v2SaveProject())return;const p=V2.projects.find(x=>x.id===b.dataset.id);if(p){download('提示詞作品-'+p.name.replace(/[\\/:*?"<>|]/g,'-')+'.json',JSON.stringify({...p.data,progress:v2Progress(p)},null,2));toast('已下載設定與腳本備份，不含外部 AI 成品；可在備份與還原新增還原作品。');}return;
       }
       case 'delete-project':{
         const p=V2.projects.find(x=>x.id===b.dataset.id);if(!p)return;
@@ -454,11 +573,25 @@ document.addEventListener('click',async e=>{
       case 'gen-next':return v2GenMove(V2.genStep+1,true);
       case 'gen-ai':
       case 'gen-copy':{
+        if(v2PendingRows().length&&!v2Progress().planReviewed){$('#v2-ai-status').textContent='請先回去修改待完成內容，或按「我已檢查，保留這些內容繼續」。';$('[data-v2=plan-confirm]')?.focus();return;}
         const text=v2SelectedPrompt();if(!text)return;
         const copied=eCopy(text,true);
-        if(b.dataset.v2==='gen-ai')window.open(eAiUrl(text),'_blank','noopener');
-        $('#v2-ai-status').textContent=copied?'已複製完整提示詞。到 AI 確認內容後再送出。':'沒有複製成功，請展開完整提示詞手動選取複製。';
+        const start=b.dataset.v2==='gen-ai'&&$('#v2-prompt-select').value==='intro'&&!v2Progress().sent.length;
+        if(start)window.open(eAiUrl(text),'_blank','noopener');
+        $('#v2-ai-status').textContent=copied?'已複製完整提示詞。'+(start?'在新的 ChatGPT 對話確認文字並送出。':'請切回剛剛的同一個 ChatGPT 對話貼上，確認文字並送出。'):'沒有複製成功，請展開完整提示詞手動選取複製。';
         return;
+      }
+      case 'plan-confirm':if(v2SetProgress({planReviewed:true})){b.textContent='已自行確認待完成內容';b.setAttribute('aria-pressed','true');}return;
+      case 'mark-sent':{
+        const key=$('#v2-prompt-select').value,progress=v2Progress();
+        if(v2PendingRows().length&&!progress.planReviewed){$('#v2-ai-status').textContent='請先檢查待完成內容。';return;}
+        if(v2SetProgress({sent:progress.sent.includes(key)?progress.sent.filter(x=>x!==key):progress.sent.concat(key)}))v2RefreshHandoff();return;
+      }
+      case 'next-prompt':{const select=$('#v2-prompt-select');if(select.selectedIndex<select.options.length-1){select.selectedIndex++;select.onchange();select.focus();}else $('#v2-ai-status').textContent='這已是最後一段；確認外部素材後，前往排版與交付檢查。';return;}
+      case 'confirm-images':{const checked=b.checked;if(!v2SetProgress({imagesReady:checked,...(!checked?{delivered:false}:{})})){b.checked=!checked;return;}if(!checked)$('[data-v2=confirm-delivery]').checked=false;return;}
+      case 'confirm-delivery':{
+        if(b.checked&&!v2Progress().imagesReady){b.checked=false;$('#v2-completion-status').textContent='請先完成並確認外部素材，再標記可交付。';return;}
+        const checked=b.checked;if(!v2SetProgress({delivered:checked}))b.checked=!checked;return;
       }
       case 'choose-hero':{
         const hero=v2Heroes().find(x=>x.id===b.dataset.id);if(!hero||!v2HeroAvailable(hero))return;
@@ -467,16 +600,22 @@ document.addEventListener('click',async e=>{
       case 'custom-hero':EP.guided=false;EP.gave=false;return epGo('sex');
       case 'image-ready':if(EP.gave)return epGo('check');return;
       case 'handoff-help':{
-        const box=$('#v2-easy-help');box.hidden=false;
-        box.innerHTML=b.dataset.kind==='open'?'<p>再按一次上面的「開啟 ChatGPT」。如果仍沒有打開，可按這裡：</p><a class="e-btn ghost" href="https://chatgpt.com/" target="_blank" rel="noopener">另行開啟 ChatGPT</a>':'<p>1. 按「只複製指令」。</p><p>2. 回到 ChatGPT，在輸入框按右鍵或長按。</p><p>3. 選「貼上」，確認有字，再按送出。</p>';
-        box.scrollIntoView({block:'nearest'});return;
+        return v2ShowEasyHelp(b.dataset.kind);
       }
+      case 'help-prev':return v2ShowEasyHelp('paste',Math.max(0,V2_HELP_STEP-1));
+      case 'help-next':return v2ShowEasyHelp('paste',Math.min(2,V2_HELP_STEP+1));
+      case 'help-close':$('#v2-easy-help').hidden=true;$('[data-v2=handoff-help][data-kind='+V2_HELP_KIND+']')?.focus();return;
       case 'free-activity':{
         V2.activePack=null;v2Persist();modeSet('easy');return go('e-home');
       }
       case 'start-pack':return v2StartPack(b.dataset.id);
       case 'edit-pack':V2_PACK_EDIT=b.dataset.id;v2RenderActivities();$('#v2-pack-form').scrollIntoView({block:'start'});$('#v2-pack-form input').focus({preventScroll:true});return;
-      case 'cancel-pack':V2_PACK_EDIT=null;return v2RenderActivities();
+      case 'cancel-pack':V2_PACK_DRAFTS.delete(V2_PACK_EDIT||'new');V2_PACK_EDIT=null;return v2RenderActivities();
+      case 'edit-hero':{
+        if(V2_HERO_DIRTY&&!await eAsk('人物卡有尚未儲存的內容，要放棄並切換嗎？','繼續編輯','放棄人物變更'))return;
+        const hero=v2Heroes().find(h=>h.id===b.dataset.id);if(hero){v2FillHeroForm(hero,!V2.heroes.includes(hero));$('#v2-hero-form [name=name]').focus();}return;
+      }
+      case 'cancel-hero':if(!V2_HERO_DIRTY||await eAsk('要放棄這張人物卡尚未儲存的內容嗎？','繼續編輯','放棄人物變更'))v2FillHeroForm(null);return;
       case 'delete-pack':{
         const pack=V2.packs.find(x=>x.id===b.dataset.id);if(!pack)return;
         if(!await eAsk('要刪除活動「'+pack.name+'」嗎？','先不要','刪除'))return;
@@ -487,7 +626,7 @@ document.addEventListener('click',async e=>{
         if(V2.packs.some(p=>p.heroId===b.dataset.id)){toast('這張人物卡仍在活動中使用，請先調整活動的人物。');return;}
         if(!await eAsk('要刪除這張自訂人物卡嗎？','先不要','刪除'))return;
         const before=structuredClone(V2);V2.heroes=V2.heroes.filter(x=>x.id!==b.dataset.id);
-        if(!v2Persist()){V2=before;return;}return v2RenderActivities();
+        if(!v2Persist()){V2=before;return;}if(V2_HERO_EDIT===b.dataset.id)v2FillHeroForm(null);v2RefreshPeople();return;
       }
       case 'export-library':return v2ExportLibrary();
       case 'toggle-preview':V2_CARD_PREVIEW=!V2_CARD_PREVIEW;return v2RenderCards();

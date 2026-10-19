@@ -66,7 +66,15 @@
     });
     return {cards:{extras,images,overrides},heroes,packs,visibility,order};
   }
-  const api={checkedLibrary};
+  function checkedProgress(value){
+    if(value===undefined)return {sent:[],selected:'intro',planReviewed:false,imagesReady:false,delivered:false};
+    const key=x=>typeof x==='string'&&/^(intro|character|\d{1,3})$/.test(x);
+    if(!record(value)||!Array.isArray(value.sent)||value.sent.length>502||!value.sent.every(key)||!key(value.selected)||
+      !['planReviewed','imagesReady','delivered'].every(k=>typeof value[k]==='boolean')||value.delivered&&!value.imagesReady)
+      throw new Error('作品進度格式不正確。');
+    return {sent:[...new Set(value.sent)],selected:value.selected,planReviewed:value.planReviewed,imagesReady:value.imagesReady,delivered:value.delivered};
+  }
+  const api={checkedLibrary,checkedProgress};
   if(typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.V2Data=api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -3,9 +3,11 @@ async page=>{
   const assert=(ok,label)=>{if(!ok)throw new Error(label);passed.push(label);};
   page.on('pageerror',e=>errors.push(e.message));
   page.on('response',r=>{if(r.status()===404)missing.push(r.url());});
+  await page.context().route('**/*',route=>/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(route.request().url())?route.continue():route.abort());
   await page.addInitScript(()=>{
     window.__opened=[];window.open=(url)=>{window.__opened.push(url);return null;};
     document.execCommand=()=>true;
+    let text='';Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{text=String(value);},readText:async()=>text}});
   });
   await page.setViewportSize({width:1366,height:960});
   await page.goto('http://127.0.0.1:8765/v2/');
@@ -21,6 +23,9 @@ async page=>{
   await page.locator('#s-seed').click();
   await page.locator('[data-v2="gen-next"]').click();
   assert(await page.locator('#v2-prompt-select').isVisible(),'規劃內容後可進入 AI 交接');
+  await page.locator('[data-v2=gen-ai]').click();
+  assert(await page.evaluate(()=>window.__opened.length===0),'骨架待完成內容需先明確確認才可交接');
+  await page.locator('[data-v2=plan-confirm]').click();
   await page.locator('[data-v2="gen-ai"]').click();
   assert(await page.evaluate(()=>window.__opened[0].startsWith('https://chatgpt.com/')),'工作人員 AI 交接網址正確');
   await page.evaluate(()=>go('home'));

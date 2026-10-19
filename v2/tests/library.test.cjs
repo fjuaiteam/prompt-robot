@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {checkedLibrary}=require('../assets/v2-data.js');
+const {checkedLibrary,checkedProgress}=require('../assets/v2-data.js');
 const sample=()=>({format:'prompt-robot-v2-library',version:1,cards:{extras:[{id:'custom-test',qid:'place',t:'圖書館',p:'明亮的圖書館'}],images:{}},heroes:[],packs:[],visibility:{'place:custom-test':false},order:{'place:custom-test':1}});
 test('備份保留自訂圖卡、顯示與排序，不保留未知欄位',()=>{
   const input=sample();input.private='不應保留';const out=checkedLibrary(input);
@@ -35,4 +35,14 @@ test('拒絕修改固定角色規則與錯誤文字設定',()=>{
   for(const overrides of [{'age:adult':{t:'成人',p:'不允許'}},{'place:park':{t:' ',p:'公園'}},[]]){
     const x=sample();x.cards.overrides=overrides;assert.throws(()=>checkedLibrary(x));
   }
+});
+test('舊作品沒有進度時補未確認狀態，不假裝已送出',()=>{
+  assert.deepEqual(checkedProgress(),{sent:[],selected:'intro',planReviewed:false,imagesReady:false,delivered:false});
+});
+test('進度只保留允許欄位並去除重複送出紀錄',()=>{
+  assert.deepEqual(checkedProgress({sent:['intro','intro','0'],selected:'0',planReviewed:true,imagesReady:true,delivered:false,unknown:'ignore'}),{sent:['intro','0'],selected:'0',planReviewed:true,imagesReady:true,delivered:false});
+});
+test('拒絕格式錯誤或未確認外部素材卻宣稱可交付的進度',()=>{
+  const p=checkedProgress();
+  for(const change of [{sent:['__proto__']},{selected:'<script>'},{imagesReady:'true'},{delivered:true},{sent:Array(503).fill('intro')}])assert.throws(()=>checkedProgress({...p,...change}));
 });

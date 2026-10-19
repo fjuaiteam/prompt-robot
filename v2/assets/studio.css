@@ -94,3 +94,10 @@ body[data-view=cards] .main{padding:28px 24px 40px;}.studio-library{display:grid
 .studio-home .v2-tasks>button>span{font-size:.65rem;}
 .studio-home .v2-project-list p,.studio-resume p{font-size:.75rem;}
 .studio-home .studio-shortcuts{padding:0;border:0;}
+/* 小螢幕保留模式界線，將頁首收為兩行，不壓縮選項文字。 */
+@media(max-width:650px){
+  .mode-easy .e-page .e-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 0;min-height:0;}
+  .mode-easy .e-page .studio-easy-brand{grid-column:1;grid-row:1;min-width:0;}
+  .mode-easy .e-page .e-homebtn{grid-column:2;grid-row:1;margin:0;font-size:14px;min-height:44px;}
+  .mode-easy .e-page .e-tools{grid-column:1/-1;grid-row:2;display:flex;justify-content:flex-end;gap:12px;margin:0;}
+}
