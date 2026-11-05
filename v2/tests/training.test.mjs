@@ -1,0 +1,51 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {randomBytes} from 'node:crypto';
+import worker,{jpegSize} from '../../cloudflare/worker.mjs';
+import {LocalD1} from '../../scripts/local-d1.mjs';
+
+const schema=await readFile(new URL('../../cloudflare/migrations/0001_training.sql',import.meta.url),'utf8');
+// Minimal structural JPEG for API validation. Browser tests use a decoded real image.
+const jpeg=Uint8Array.from([255,216,255,192,0,11,8,0,1,0,1,1,1,17,0,255,218,0,8,1,1,0,0,63,0,1,255,217]);
+function setup(){const DB=new LocalD1();DB.db.exec(schema);const env={DB,ADMIN_PASSWORD:randomBytes(24).toString('hex'),AUTH_SECRET:randomBytes(32).toString('hex'),SESSION_SECRET:randomBytes(32).toString('hex')};return {env,close:()=>DB.close()};}
+function client(env){let cookie='';return {async request(path,method='GET',body,headers={}){const init={method,headers:{Origin:'http://localhost',...(cookie?{Cookie:cookie}:{}),...headers}};if(body!==undefined){if(body instanceof Uint8Array){init.body=body;init.headers['Content-Type']='image/jpeg';}else{init.body=JSON.stringify(body);init.headers['Content-Type']='application/json';}}const res=await worker.fetch(new Request('http://localhost'+path,init),env);if(res.headers.get('Set-Cookie'))cookie=res.headers.get('Set-Cookie').split(';')[0];return res;},async json(path,method,body,headers){const r=await this.request(path,method,body,headers);const d=await r.json();assert.ok(r.ok,`${r.status} ${JSON.stringify(d)}`);return d;}};}
+async function boot(env,count=2){const admin=client(env);await admin.json('/api/login','POST',{username:'admin',password:env.ADMIN_PASSWORD});const {credentials}=await admin.json('/api/admin/activities/training-20261118/accounts','POST',{count});await admin.json('/api/admin/activities/training-20261118','PATCH',{isOpen:true});return {admin,credentials};}
+async function learner(env,c,index=1){const c1=client(env);await c1.json('/api/login','POST',c);await c1.json('/api/profile','POST',{name:'測試學員'+index,groupName:'第'+index+'組',activityCode:'TRAIN1118'});return c1;}
+const upload=(c,version=0,id=crypto.randomUUID(),data=jpeg)=>c.request('/api/submission','PUT',data,{'If-Match':String(version),'X-Request-Id':id});
+
+test('JPEG rejects unsupported, empty and oversized dimensions',()=>{assert.deepEqual(jpegSize(jpeg),{width:1,height:1});assert.equal(jpegSize(new Uint8Array()),null);const tooWide=jpeg.slice();tooWide[9]=32;tooWide[10]=0;assert.equal(jpegSize(tooWide),null);});
+test('teaching source assets and PDFs are not public, sign-in runtime stays accessible',async()=>{const {env,close}=setup();try{env.ASSETS={fetch:async()=>new Response('asset')};for(const path of ['/','/v2/index.html','/v1/assets/data.js','/v2/assets/book/example.pdf']){const res=await worker.fetch(new Request('https://test.example'+path),env);assert.equal(res.status,302);assert.equal(res.headers.get('Location'),'/v2/submit.html');}assert.equal((await worker.fetch(new Request('https://test.example/v2/submit.html'),env)).status,200);assert.equal((await worker.fetch(new Request('https://test.example/v2/assets/submission.js'),env)).status,200);}finally{close();}});
+test('login, profile lock, private images, atomic replace, idempotency and stale version',async()=>{const {env,close}=setup();try{const {admin,credentials}=await boot(env);const a=await learner(env,credentials[0]),b=await learner(env,credentials[1],2),anon=client(env);
+  assert.equal((await anon.request('/api/submission/image')).status,401);
+  assert.equal((await a.request('/api/admin/activities')).status,403);
+  assert.equal((await a.request('/api/profile','POST',{name:'更名',groupName:'第1組',activityCode:'TRAIN1118'})).status,403);
+  const id=crypto.randomUUID();assert.equal((await upload(a,0,id)).status,200);assert.equal((await upload(a,0,id)).status,200);
+  assert.equal((await a.json('/api/submission')).submission.version,1);assert.equal((await b.request('/api/submission/image')).status,404);
+  assert.equal((await upload(a,0)).status,409);assert.equal((await upload(a,1,crypto.randomUUID(),new Uint8Array([1,2,3]))).status,400);
+  assert.equal((await a.json('/api/submission')).submission.version,1);assert.equal((await upload(a,1)).status,200);
+  assert.equal((await a.json('/api/submission')).submission.version,2);
+  assert.equal((await a.request('/api/submission/image?v=1')).status,409);assert.equal((await a.request('/api/submission/image?v=2')).status,200);assert.equal((await a.request('/api/submission/image?v=bad')).status,400);
+  const list=await admin.json('/api/admin/activities/training-20261118/submissions');assert.equal(list.total,1);assert.equal(list.submissions[0].name,'測試學員1');
+  assert.equal((await anon.request(list.submissions[0].imageUrl)).status,401);assert.equal((await b.request(list.submissions[0].imageUrl)).status,403);assert.equal((await admin.request(list.submissions[0].imageUrl)).status,200);
+  const me=await a.json('/api/me');await admin.json('/api/admin/accounts/'+me.user.id,'PATCH',{disabled:true});assert.equal((await a.request('/api/me')).status,401);
+}finally{close();}});
+test('closed activity, wrong code, origin, content type, size and admin deletion confirmation',async()=>{const {env,close}=setup();try{const {admin,credentials}=await boot(env);const a=client(env);await a.json('/api/login','POST',credentials[0]);assert.equal((await a.request('/api/profile','POST',{name:'測試',groupName:'A',activityCode:'WRONG'})).status,400);await a.json('/api/profile','POST',{name:'測試',groupName:'A',activityCode:'TRAIN1118'});
+  assert.equal((await a.request('/api/logout','POST',{}, {Origin:'https://evil.example'})).status,403);
+  const wrongType=await worker.fetch(new Request('http://localhost/api/login',{method:'POST',headers:{Origin:'http://localhost','Content-Type':'text/plain'},body:'bad'}),env);assert.equal(wrongType.status,415);
+  assert.equal((await upload(a,0,crypto.randomUUID(),new Uint8Array(1000001))).status,413);
+  assert.equal((await upload(a)).status,200);
+  assert.equal((await admin.request('/api/admin/activities/training-20261118/submissions','DELETE',{confirmCode:'WRONG'})).status,400);
+  assert.equal((await admin.request('/api/admin/activities/training-20261118/submissions','DELETE',{confirmCode:'TRAIN1118'})).status,409);
+  await admin.json('/api/admin/activities/training-20261118','PATCH',{isOpen:false});assert.equal((await upload(a,1)).status,409);
+  assert.equal((await admin.json('/api/admin/activities/training-20261118/submissions','DELETE',{confirmCode:'TRAIN1118'})).deleted,1);
+  assert.equal(env.DB.db.prepare('SELECT COUNT(*) n FROM images').get().n,0);assert.equal((await a.request('/api/submission/image')).status,404);
+}finally{close();}});
+test('password reset revokes sessions, activities remain isolated and no password hash leaks',async()=>{const {env,close}=setup();try{const {admin,credentials}=await boot(env,1),a=await learner(env,credentials[0]);const who=await a.json('/api/me');const list=await admin.json('/api/admin/activities/training-20261118/accounts');assert.ok(!JSON.stringify(list).includes('password_hash'));const c=await admin.json('/api/admin/accounts/'+who.user.id+'/reset-password','POST',{});assert.equal((await a.request('/api/me')).status,401);assert.equal((await a.request('/api/login','POST',credentials[0])).status,401);await a.json('/api/login','POST',c);const next=(await admin.json('/api/admin/activities','POST',{name:'下次活動',code:'NEXT2026'})).activity;assert.equal((await admin.json(`/api/admin/activities/${next.id}/submissions`)).total,0);assert.equal((await a.request(`/api/admin/activities/${next.id}/accounts`)).status,403);
+}finally{close();}});
+test('database failure rolls back both metadata and image',async()=>{const {env,close}=setup();try{const {credentials}=await boot(env,1),a=await learner(env,credentials[0]);assert.equal((await upload(a)).status,200);env.DB.db.exec("CREATE TRIGGER forced_failure BEFORE UPDATE ON images BEGIN SELECT RAISE(ABORT,'TEST_FAILURE'); END");assert.equal((await upload(a,1)).status,503);assert.equal((await a.json('/api/submission')).submission.version,1);assert.equal((await a.request('/api/submission/image')).status,200);
+}finally{close();}});
+test('global image capacity rejects new data without corrupting existing records',async()=>{const {env,close}=setup();try{const {credentials}=await boot(env,1),a=await learner(env,credentials[0]);const account=env.DB.db.prepare('INSERT INTO accounts(id,activity_id,username,password_hash,created_at) VALUES(?,?,?,?,?)'),submission=env.DB.db.prepare('INSERT INTO submissions(id,activity_id,account_id,version,size,digest,request_id,updated_at) VALUES(?,?,?,1,1000000,?,?,?)');for(let i=0;i<200;i++){const id='capacity-'+i;account.run(id,'training-20261118',id,'synthetic','2026-11-06');submission.run(id,'training-20261118',id,'synthetic',id,'2026-11-06');}assert.equal((await upload(a)).status,507);assert.equal((await a.json('/api/submission')).submission,null);assert.equal(env.DB.db.prepare('SELECT SUM(size) n FROM submissions').get().n,200000000);}finally{close();}});
+test('50 concurrent logins, uploads and replacement: no loss, 50 latest rows',async()=>{const {env,close}=setup();try{const {admin,credentials}=await boot(env,50);const clients=await Promise.all(credentials.map((c,i)=>learner(env,c,i+1)));const first=await Promise.all(clients.map(c=>upload(c)));assert.ok(first.every(r=>r.status===200));const second=await Promise.all(clients.map(c=>upload(c,1)));assert.ok(second.every(r=>r.status===200));const list=await admin.json('/api/admin/activities/training-20261118/submissions');assert.equal(list.total,50);assert.ok(list.submissions.every(s=>s.version===2));assert.equal(env.DB.db.prepare('SELECT COUNT(*) n FROM images').get().n,50);
+  const competing=await Promise.all([upload(clients[0],2),upload(clients[0],2)]);assert.deepEqual(competing.map(r=>r.status).sort(),[200,409]);assert.equal((await clients[0].json('/api/submission')).submission.version,3);
+}finally{close();}});

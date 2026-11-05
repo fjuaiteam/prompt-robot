@@ -1,0 +1,15 @@
+{
+  "name": "prompt-robot-training",
+  "private": true,
+  "version": "2.1.0",
+  "scripts": {
+    "build": "node scripts/build-site.mjs",
+    "dev": "node scripts/local-preview.mjs",
+    "dev:cloudflare": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev --ip 127.0.0.1 --port 8787",
+    "check": "node scripts/check-training.mjs",
+    "test": "node --test v2/tests/training.test.mjs v2/tests/library.test.cjs",
+    "deploy:preview": "npm run build && wrangler deploy --env preview",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {"wrangler": "4.157.0", "fflate": "0.8.3"}
+}

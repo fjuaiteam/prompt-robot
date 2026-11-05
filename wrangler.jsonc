@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "prompt-robot-training",
+  "main": "cloudflare/worker.mjs",
+  "compatibility_date": "2026-11-04",
+  "workers_dev": true,
+  "assets": {"directory": ".deploy/site", "binding": "ASSETS", "run_worker_first": true},
+  "d1_databases": [{"binding": "DB", "database_name": "prompt-robot-training", "database_id": "3abea1b9-c21f-4b4e-888b-f5167c961e4c", "migrations_dir": "cloudflare/migrations"}],
+  "env": {
+    "preview": {
+      "name": "prompt-robot-training-preview",
+      "d1_databases": [{"binding": "DB", "database_name": "prompt-robot-training-preview", "database_id": "d0f93585-aa59-47ff-9bc4-6d45d977f3e1", "migrations_dir": "cloudflare/migrations"}]
+    }
+  }
+}

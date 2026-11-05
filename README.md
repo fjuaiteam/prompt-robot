@@ -1,6 +1,12 @@
 # 提示詞機器人
 
-供工作人員準備教材、帶領圖卡活動，以及產生讀物、影片與易讀改寫指令的純前端系統。Owner：**fjuaiteam**；Private；維護中。
+供工作人員準備教材、帶領圖卡活動，以及產生讀物、影片與易讀改寫指令的系統。原有教材保留純前端離線使用，新增雲端教育訓練交件。Owner：**fjuaiteam**；維護中。
+
+## 11/18 教育訓練與圖片交件
+
+免費預設網址：<https://prompt-robot-training.canadaur77.workers.dev>。學員使用預發帳密登入，填姓名／組別／活動代碼後交一張圖片，可重交；講師由 `/v2/admin.html` 管理帳號、活動與下載 ZIP／CSV。教材與圖片皆有登入權限控制。
+
+採 Cloudflare Workers＋D1，正式與預覽隔離，未啟用 R2 或圖片生成 API。實作、部署及課前演練見 [教育訓練部署說明](docs/training-deployment.md)；工作紀錄見 [training-log](docs/training-log.md)。管理密碼與學員帳密只保存在本機忽略的 `.deploy/` 交接檔，不在 Git。
 
 ## 資料夾
 

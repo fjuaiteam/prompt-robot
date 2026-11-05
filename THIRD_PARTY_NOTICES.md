@@ -13,6 +13,7 @@
 | Geist 字型 | SIL Open Font License 1.1 | `assets/fonts/GEIST-LICENSE.txt` |
 | Noto Serif TC 字型 | SIL Open Font License 1.1 | `assets/fonts/OFL.txt` |
 | Three.js r148 | MIT；[上游授權](https://github.com/mrdoob/three.js/blob/r148/LICENSE) | `assets/vendor/THREE-LICENSE.txt` |
+| fflate 0.8.3（僅 v2） | MIT；[上游](https://github.com/101arrowz/fflate/tree/v0.8.3)；用於講師瀏覽器內產生 ZIP | `v2/assets/vendor/FFLATE-LICENSE.txt` |
 
 內建教學資料包含業師講義的整理與提示詞、讀物教學範例及示範圖片。使用者於 2026-10-16 確認講義提示詞可連同系統存入此私有倉庫供團隊協作；不據此宣稱教材可公開、商用或自由再散布。
 
