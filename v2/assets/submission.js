@@ -1,21 +1,23 @@
 'use strict';
 (()=>{
   const {$,api,status,busy,time}=Training;let me=null,saved=null,pending=null,requestId=null,previewUrl=null,generation=0,uploading=false;
-  function showLogin(){me=null;saved=null;pending=null;requestId=null;generation++;if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}$('image-file').value='';$('preview').hidden=true;$('file-info').textContent='';$('saved-image').removeAttribute('src');$('saved-download').removeAttribute('href');$('upload').disabled=true;$('login-section').hidden=false;$('student-section').hidden=true;}
+  function showLogin(){me=null;saved=null;pending=null;requestId=null;generation++;if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}$('image-file').value='';$('preview').hidden=true;$('file-info').textContent='';$('saved-submission').hidden=true;$('saved-image').hidden=true;$('saved-image').removeAttribute('src');$('saved-download').removeAttribute('href');$('upload').disabled=true;$('login-section').hidden=false;$('student-section').hidden=true;}
   async function renderStudent(){
     if(me.role!=='student'){location.replace('admin.html');return;}
     $('login-section').hidden=true;$('student-section').hidden=false;
     $('welcome').textContent=me.activity.name+' · '+(me.user.name||me.user.username);
-    const needsProfile=!me.user.name||!me.user.groupName;$('profile-form').hidden=!needsProfile;$('upload-section').hidden=needsProfile;
+    const needsProfile=!me.user.name||!me.user.groupName;$('profile-form').hidden=!needsProfile;$('upload-section').hidden=true;
     if(needsProfile){$('profile-form').elements.name.value=me.user.name||'';$('profile-form').elements.groupName.value=me.user.groupName||'';return;}
     $('activity-state').textContent=me.activity.isOpen?'活動開放中，確認預覽後即可交件。':'目前尚未開放或已截止交件；你仍可查看已交作品。';
-    saved=(await api('/api/submission')).submission;renderSaved();$('upload').disabled=!pending||!me.activity.isOpen;
+    saved=(await api('/api/submission')).submission;renderSaved();$('upload-section').hidden=false;$('upload').disabled=!pending||!me.activity.isOpen;
   }
   function renderSaved(){
     $('empty-submission').hidden=!!saved;$('saved-submission').hidden=!saved;
     $('upload').textContent=saved?'確認替換作品':'確認上傳';
-    if(saved){$('saved-image').src=saved.imageUrl+'?v='+saved.version;$('saved-download').href=saved.imageUrl+'?v='+saved.version;$('saved-name').textContent=me.user.name;$('saved-group').textContent=me.user.groupName;$('saved-time').textContent=time(saved.updatedAt);}
+    if(saved){$('saved-image').hidden=true;$('saved-image-state').hidden=false;$('saved-image-state').textContent='正在載入已交圖片…';$('saved-image').src=saved.imageUrl+'?v='+saved.version;$('saved-download').href=saved.imageUrl+'?v='+saved.version;$('saved-name').textContent=me.user.name;$('saved-group').textContent=me.user.groupName;$('saved-time').textContent=time(saved.updatedAt);}
   }
+  $('saved-image').addEventListener('load',()=>{if(saved&&me&&$('saved-image').naturalWidth>0){$('saved-image').hidden=false;$('saved-image-state').hidden=true;}});
+  $('saved-image').addEventListener('error',()=>{if(saved&&me){$('saved-image').hidden=true;$('saved-image-state').hidden=false;$('saved-image-state').textContent='圖片暫時無法顯示，請重新整理或重新登入，確認最新交件紀錄。';}});
   async function init(){if(Training.localWarning())return;try{me=await api('/api/me');await renderStudent();}catch(e){showLogin();if(e.status!==401)status(e.message,true);}}
   $('login-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;busy(f.querySelector('button'),async()=>{me=await api('/api/login',{method:'POST',body:{username:f.elements.username.value.trim(),password:f.elements.password.value}});f.elements.password.value='';status('');await renderStudent();});});
   $('profile-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;busy(f.querySelector('button'),async()=>{me=await api('/api/profile',{method:'POST',body:Object.fromEntries(new FormData(f))});status('資料已確認。');await renderStudent();});});
