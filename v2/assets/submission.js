@@ -1,6 +1,8 @@
 'use strict';
 (()=>{
   const {$,api,status,busy,time}=Training;let me=null,saved=null,pending=null,requestId=null,previewUrl=null,generation=0,uploading=false;
+  const nextDrawing=new URLSearchParams(location.search).get('next')==='draw';
+  function continueToDrawing(){if(nextDrawing){location.replace('/v2/?mode=easy');return true;}return false;}
   function showLogin(){me=null;saved=null;pending=null;requestId=null;generation++;if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}$('image-file').value='';$('preview').hidden=true;$('file-info').textContent='';$('saved-submission').hidden=true;$('saved-image').hidden=true;$('saved-image').removeAttribute('src');$('saved-download').removeAttribute('href');$('upload').disabled=true;$('login-section').hidden=false;$('student-section').hidden=true;}
   async function renderStudent(){
     if(me.role!=='student'){location.replace('admin.html');return;}
@@ -18,8 +20,8 @@
   }
   $('saved-image').addEventListener('load',()=>{if(saved&&me&&$('saved-image').naturalWidth>0){$('saved-image').hidden=false;$('saved-image-state').hidden=true;}});
   $('saved-image').addEventListener('error',()=>{if(saved&&me){$('saved-image').hidden=true;$('saved-image-state').hidden=false;$('saved-image-state').textContent='圖片暫時無法顯示，請重新整理或重新登入，確認最新交件紀錄。';}});
-  async function init(){if(Training.localWarning())return;try{me=await api('/api/me');await renderStudent();}catch(e){showLogin();if(e.status!==401)status(e.message,true);}}
-  $('login-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;busy(f.querySelector('button'),async()=>{me=await api('/api/login',{method:'POST',body:{username:f.elements.username.value.trim(),password:f.elements.password.value}});f.elements.password.value='';status('');await renderStudent();});});
+  async function init(){if(Training.localWarning())return;try{me=await api('/api/me');if(!continueToDrawing())await renderStudent();}catch(e){showLogin();if(e.status!==401)status(e.message,true);else if(nextDrawing)status('請先登入，登入後會直接進入畫圖片。');}}
+  $('login-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;busy(f.querySelector('button'),async()=>{me=await api('/api/login',{method:'POST',body:{username:f.elements.username.value.trim(),password:f.elements.password.value}});f.elements.password.value='';status('');if(!continueToDrawing())await renderStudent();});});
   $('profile-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;busy(f.querySelector('button'),async()=>{me=await api('/api/profile',{method:'POST',body:Object.fromEntries(new FormData(f))});status('資料已確認。');await renderStudent();});});
   $('logout').addEventListener('click',()=>busy($('logout'),async()=>{await api('/api/logout',{method:'POST',body:{}});generation++;pending=null;requestId=null;$('image-file').value='';$('preview').hidden=true;if(previewUrl)URL.revokeObjectURL(previewUrl);showLogin();status('已登出。');}));
   async function compress(file){

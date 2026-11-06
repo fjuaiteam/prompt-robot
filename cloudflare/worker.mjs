@@ -179,7 +179,7 @@ export default {
         '/v2/assets/vendor/FFLATE-LICENSE.txt','/v2/assets/fonts/geist-latin.woff2',
         '/v2/assets/fonts/GEIST-LICENSE.txt','/THIRD_PARTY_NOTICES.md']);
       if(!publicPaths.has(path)){
-        try{await session(request,env);}catch{return new Response(null,{status:302,headers:{Location:'/v2/submit.html','Cache-Control':'no-store'}});}
+        try{await session(request,env);}catch{const url=new URL(request.url),drawing=['/v2/','/v2/index.html'].includes(path)&&url.searchParams.get('mode')==='easy';return new Response(null,{status:302,headers:{Location:drawing?'/v2/submit.html?next=draw':'/v2/submit.html','Cache-Control':'no-store'}});}
       }
       const res=await env.ASSETS.fetch(request);const headers=new Headers(res.headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','same-origin');
       headers.set('Cache-Control','private, no-store');

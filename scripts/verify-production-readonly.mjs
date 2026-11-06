@@ -1,7 +1,7 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-const base='https://prompt-robot-training.canadaur77.workers.dev';
+const base='https://prompt-robot-training.ooo-training.workers.dev';
 const secrets=JSON.parse(await readFile('.deploy/production-secrets.json','utf8'));
 const csv=(await readFile('.deploy/TRAIN1118-學員帳密.csv','utf8')).replace(/^\uFEFF/,'').trim().split(/\r?\n/);
 assert.equal(csv.length,51);const [username,password]=csv[1].split(',').map(s=>s.slice(1,-1));
