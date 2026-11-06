@@ -49,7 +49,9 @@ npx wrangler secret bulk .deploy/preview-secrets.json --env preview
 
 Cloudflare Workers Builds 應連接 `fjuaiteam/prompt-robot` 的 `main`：build=`npm run check && npm test && npm run build`，deploy=`npx wrangler deploy`，Node=`24.12.0`。關閉自動分支 Previews，以免複製正式 DB binding；隔離 preview 使用獨立環境手動發布。維持短期分支＋非作者 PR 審查，agent 不自我合併。實際連線證據見本機 `.deploy/github-build-connection.json`；沒有該證據不能聲稱已連接。
 
-目前已由 CLI 發布並驗證正式與預覽網址；GitHub 自動建置尚未連接，因既有認證讀取 Workers Builds API 回 HTTP 403。網站使用不依賴這項連線；需帳號擁有者在 Settings → Builds 完成授權，並由非作者審查合併 PR 後，才可驗證 `main` 推送自動更新。不要把 PR 已建立或 CLI 發布視為自動部署已完成。
+2026/11/06 已合併功能 PR #3。使用者在正式 Worker 的 Settings → Builds 連接 `fjuaiteam/prompt-robot`／`main`，並於 GitHub App 的選定倉庫授權加入本倉庫；原有 `pageoutput-web` 授權保留，斷線警告已消失。建置與部署指令如上；須確認 Enable Preview builds 已取消勾選。
+
+連接完成時尚無首次自動建置紀錄，Deployments 仍為先前 Wrangler 手動部署。下一個文件 PR 合併至 `main` 後，應檢查該提交的 Cloudflare check run／建置記錄及實際部署版本，成功後再確認正式網站登入與資料保護。GitHub 授權完成不等於自動部署已驗證；既有 CLI 的 Builds API HTTP 403 也不代表瀏覽器設定的連線失效。
 
 `scripts/connect-cloudflare-git.mjs` 預設僅讀取指定 Worker 與既有 build token metadata，帶 `--connect` 才連接固定倉庫。不會列印 OAuth／build token。若 Cloudflare 回應缺少 Workers Builds 權限，需由帳號擁有者在 Worker 的 Settings → Builds 連接 GitHub；不可把秘密硬寫進 workflow。
 
