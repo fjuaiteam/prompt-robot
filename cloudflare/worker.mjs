@@ -1,3 +1,5 @@
+import {Buffer} from 'node:buffer';
+
 const MAX_IMAGE = 1000000;
 const STORAGE_LIMIT = 200000000;
 const enc = new TextEncoder();
@@ -116,8 +118,10 @@ async function upload(request,env,s){
       WHERE a.id=? AND a.disabled=0 AND a.name<>'' AND a.group_name<>'' AND t.is_open=1 AND (?=0 OR EXISTS(SELECT 1 FROM submissions WHERE account_id=a.id))
       ON CONFLICT(activity_id,account_id) DO UPDATE SET version=submissions.version+1,size=excluded.size,digest=excluded.digest,request_id=excluded.request_id,updated_at=excluded.updated_at
       WHERE submissions.version=? AND submissions.request_id<>excluded.request_id RETURNING id,version`).bind(id,bytes.length,digest,requestId,now,s.account_id,version,version),
-    env.DB.prepare(`INSERT INTO images(submission_id,data) SELECT id,? FROM submissions WHERE account_id=? AND activity_id=? AND request_id=? AND digest=?
-      ON CONFLICT(submission_id) DO UPDATE SET data=excluded.data`).bind(bytes.buffer,s.account_id,s.activity_id,requestId,digest)
+    // A binary D1 binding expands every byte into a JSON number. Native hex encoding
+    // keeps the Worker below the free CPU budget; D1 still stores the original BLOB.
+    env.DB.prepare(`INSERT INTO images(submission_id,data) SELECT id,unhex(?) FROM submissions WHERE account_id=? AND activity_id=? AND request_id=? AND digest=?
+      ON CONFLICT(submission_id) DO UPDATE SET data=excluded.data`).bind(Buffer.from(bytes.buffer,bytes.byteOffset,bytes.byteLength).toString('hex'),s.account_id,s.activity_id,requestId,digest)
   ]);
   const saved=await getSubmission(env,s);
   if(saved?.request_id!==requestId||saved.digest!==digest)fail(409,'VERSION_CONFLICT','作品已更新或活動已截止，請重新載入。');
@@ -126,11 +130,11 @@ async function upload(request,env,s){
 }
 async function image(env,s,id=null,expected=null){
   if(expected!==null&&!/^\d{1,9}$/.test(expected))fail(400,'INVALID_VERSION','圖片版本不正確，請重新整理。');
-  let q;if(s.role==='admin'&&id)q=env.DB.prepare('SELECT i.data,t.version FROM images i JOIN submissions t ON t.id=i.submission_id WHERE i.submission_id=?').bind(id);
-  else {student(s);q=env.DB.prepare('SELECT i.data,t.version FROM images i JOIN submissions t ON t.id=i.submission_id WHERE t.account_id=? AND t.activity_id=?').bind(s.account_id,s.activity_id);}
+  let q;if(s.role==='admin'&&id)q=env.DB.prepare('SELECT hex(i.data) dataHex,t.version FROM images i JOIN submissions t ON t.id=i.submission_id WHERE i.submission_id=?').bind(id);
+  else {student(s);q=env.DB.prepare('SELECT hex(i.data) dataHex,t.version FROM images i JOIN submissions t ON t.id=i.submission_id WHERE t.account_id=? AND t.activity_id=?').bind(s.account_id,s.activity_id);}
   const row=await q.first();if(!row)fail(404,'NOT_FOUND','尚未找到圖片。');
   if(expected!==null&&row.version!==Number(expected))fail(409,'VERSION_CONFLICT','作品已更新，請重新整理交件清單後再下載。');
-  return new Response(new Uint8Array(row.data),{headers:{'Content-Type':'image/jpeg','Content-Disposition':'inline; filename="submission.jpg"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+  return new Response(Buffer.from(row.dataHex,'hex'),{headers:{'Content-Type':'image/jpeg','Content-Disposition':'inline; filename="submission.jpg"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 }
 async function activityById(env,id){const a=await env.DB.prepare('SELECT * FROM activities WHERE id=?').bind(id).first();if(!a)fail(404,'NOT_FOUND','找不到活動。');return a;}
 async function adminApi(request,env,s,path){
