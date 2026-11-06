@@ -1,6 +1,6 @@
 // Cleanup only synthetic activities made by this test suite in the dedicated preview.
 import {readFile,writeFile} from 'node:fs/promises';
-const base='https://prompt-robot-training-preview.canadaur77.workers.dev';
+const base='https://prompt-robot-training-preview.ooo-training.workers.dev';
 const secrets=JSON.parse(await readFile('.deploy/preview-secrets.json','utf8'));let cookie='';
 async function api(path,method='GET',data){const res=await fetch(base+path,{method,headers:{Origin:base,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})},...(data!==undefined?{body:JSON.stringify(data)}:{}),signal:AbortSignal.timeout(30000)});if(res.headers.has('Set-Cookie'))cookie=res.headers.get('Set-Cookie').split(';')[0];if(!res.ok)throw Error(`Preview cleanup: ${method} ${path} -> ${res.status}`);return res.json();}
 await api('/api/login','POST',{username:'admin',password:secrets.ADMIN_PASSWORD});

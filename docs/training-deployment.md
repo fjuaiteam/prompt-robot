@@ -4,9 +4,9 @@
 
 ## 網址與日常操作
 
-- 正式網站：<https://prompt-robot-training.canadaur77.workers.dev>
+- 正式網站：<https://prompt-robot-training.ooo-training.workers.dev>
 - 學員交件：正式網站 `/v2/submit.html`；講師管理：`/v2/admin.html`。
-- 隔離預覽：<https://prompt-robot-training-preview.canadaur77.workers.dev>，使用不同 D1 和 secrets。
+- 隔離預覽：<https://prompt-robot-training-preview.ooo-training.workers.dev>，使用不同 D1 和 secrets。
 - 學員帳密由講師產生；首次登入填姓名、組別及活動代碼，確認後由講師更正。學員使用自己的 AI 帳號產圖，下載後回站交件。
 - 一人每場一張，重交以最新版本取代。先保存成功才更換，重送同一 request id 不重複計數；舊分頁衝突須重新確認。
 - 管理頁可開放／截止活動、建立帳號、重設密碼、停用帳號、搜尋、查看與下載作品。帳密 CSV 僅在產生／重設時提供，請立即保存。
