@@ -10,6 +10,7 @@
 - 學員帳密由講師產生；首次登入填姓名、組別及活動代碼，確認後由講師更正。學員使用自己的 AI 帳號產圖，下載後回站交件。
 - 一人每場一張，重交以最新版本取代。先保存成功才更換，重送同一 request id 不重複計數；舊分頁衝突須重新確認。
 - 管理頁可開放／截止活動、建立帳號、重設密碼、停用帳號、搜尋、查看與下載作品。帳密 CSV 僅在產生／重設時提供，請立即保存。
+- 學員登入時會看到使用時長記錄告知；頁面每分鐘回報，講師帳號頁可查看每人累計分鐘、登入次數、最近登入，並下載使用時長 CSV。時長依瀏覽器回報估算，離線、瀏覽器關閉或頁面長時間未回報會少計；不記錄逐項操作內容。
 - 批次 ZIP 含全部圖片和 CSV，與搜尋條件無關；在講師瀏覽器產生，不向第三方傳送作品。檔名保留唯一帳號，避免同名作品互相覆蓋。
 - 作品不自動刪除。先匯出、截止活動，再輸入完整活動代碼確認清空該活動作品；帳號和其他活動保留。
 
@@ -19,7 +20,7 @@
 
 正式與預覽密碼和資料完全分開。Cookie 為 HttpOnly、SameSite=Strict；HTTPS 加 Secure 和 `__Host-` 前綴。密碼為高熵隨機值，以秘密金鑰 HMAC 驗證；登入有 IP 和帳號限流。帳號停用／重設密碼會撤銷其 sessions。提交 API 檢查同源、身分、JPEG 結構／尺寸、大小和活動狀態，禁止跨帳號讀圖。管理密碼僅放 Cloudflare Secrets。
 
-接受原圖 JPEG／PNG／WebP，最多 20 MiB；在瀏覽器轉為長邊最多 2,048 px、最多 1,000,000 bytes JPEG，透明背景白底。D1 全站作品 metadata 的容量上限為 200,000,000 bytes，由資料庫 trigger 原子檢查；不自動升級。免費方案額度由同帳號服務共用，超額時請保留圖片稍後重試，不能保證免費服務沒有中斷。
+接受原圖 JPEG／PNG／WebP，最多 20 MiB；在瀏覽器轉為長邊最多 2,048 px、最多 1,000,000 bytes JPEG，透明背景白底。應用層所有活動的圖片容量合計上限為 200,000,000 bytes（約 200 MB），由資料庫 trigger 原子檢查；每位學員每場活動限一張、單張最多 1 MB，50 位各交一張最多約 50 MB，重交會替換原圖、不累加容量。此應用層上限不是 Cloudflare 免費方案的 D1 總額度；免費方案額度由同帳號服務共用，超額時請保留圖片稍後重試，不能保證免費服務沒有中斷。
 
 本機 `.deploy/` 內的 secrets、帳密、教學交接、測試報告與截圖，以及 `.dev.vars`、`.wrangler/`、`node_modules/` 都不進 Git。建置僅複製 Git 追蹤的 runtime 白名單及列明的新交件元件，排除本機媒體、使用者資料、tests、docs 和 secrets。
 
@@ -45,7 +46,7 @@ npm run deploy:preview
 npx wrangler secret bulk .deploy/preview-secrets.json --env preview
 ```
 
-正式發布須先通過隔離驗收，再對 production 套 migration、設定 secrets 並執行 `npm run deploy`。正式帳號初始化由 `node scripts/prepare-training-event.mjs` 完成，預設活動 `TRAIN1118`；重跑不應重設已發放密碼。
+正式發布須先通過隔離驗收，再對 production 套 migration、設定 secrets 並執行 `npm run deploy`。正式帳號初始化由 `node scripts/prepare-training-event.mjs` 完成，預設活動 `TRAIN1118`；重跑不應重設已發放密碼。新增 `0002_usage_tracking.sql` 時，須先套用 production D1 migration 再部署引用使用時長資料表的 Worker。
 
 Cloudflare Workers Builds 應連接 `fjuaiteam/prompt-robot` 的 `main`：build=`npm run check && npm test && npm run build`，deploy=`npx wrangler deploy`，Node=`24.12.0`。關閉自動分支 Previews，以免複製正式 DB binding；隔離 preview 使用獨立環境手動發布。維持短期分支＋非作者 PR 審查，agent 不自我合併。實際連線證據見本機 `.deploy/github-build-connection.json`；沒有該證據不能聲稱已連接。
 

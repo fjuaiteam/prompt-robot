@@ -41,6 +41,18 @@ async function session(request,env) {
   if(!s||s.role==='student'&&(s.disabled||!s.account_id))fail(401,'LOGIN_REQUIRED','登入已失效，請重新登入。');
   return {...s,tokenHash:await hmac(env.SESSION_SECRET,token)};
 }
+async function trackUsage(env,s,now=Date.now(),force=false){
+  if(s.role!=='student')return;
+  await env.DB.prepare(`UPDATE usage_sessions SET
+    duration_seconds=duration_seconds+CASE WHEN ?=1 OR last_seen_at<=?-30000 THEN MIN(120,MAX(0,CAST((?-last_seen_at)/1000 AS INTEGER))) ELSE 0 END,
+    last_seen_at=CASE WHEN ?=1 OR last_seen_at<=?-30000 THEN ? ELSE last_seen_at END
+    WHERE token_hash=? AND ended_at IS NULL`).bind(Number(force),now,now,Number(force),now,now,s.tokenHash).run();
+}
+async function closeUsage(env,s,now=Date.now()){
+  if(s.role!=='student')return;
+  await trackUsage(env,s,now,true);
+  await env.DB.prepare('UPDATE usage_sessions SET ended_at=? WHERE token_hash=? AND ended_at IS NULL').bind(now,s.tokenHash).run();
+}
 function admin(s){if(s.role!=='admin')fail(403,'FORBIDDEN','此功能僅供講師使用。');}
 function student(s){if(s.role!=='student')fail(403,'FORBIDDEN','請使用學員帳號。');}
 const toActivity=a=>a?{id:a.id,name:a.name,code:a.code,isOpen:!!a.is_open,accountCount:a.account_count??undefined,submissionCount:a.submission_count??undefined}:null;
@@ -60,11 +72,15 @@ async function login(request,env){
   if(username==='admin'){role='admin';ok=equal(await hmac(env.AUTH_SECRET,password),await hmac(env.AUTH_SECRET,env.ADMIN_PASSWORD));}
   else {account=await env.DB.prepare('SELECT * FROM accounts WHERE username=?').bind(username).first();const digest=await hmac(env.AUTH_SECRET,password);ok=!!account&&!account.disabled&&equal(digest,account.password_hash);}
   if(!ok)fail(401,'LOGIN_FAILED','帳號或密碼不正確，或帳號已停用。');
-  const token=randomToken(),tokenHash=await hmac(env.SESSION_SECRET,token);
+  const token=randomToken(),tokenHash=await hmac(env.SESSION_SECRET,token),expiresAt=now+8*3600000;
   await env.DB.batch([
+    env.DB.prepare(`UPDATE usage_sessions SET duration_seconds=duration_seconds+
+      CASE WHEN last_seen_at<expires_at THEN MIN(120,MAX(0,CAST((MIN(expires_at,?)-last_seen_at)/1000 AS INTEGER))) ELSE 0 END,
+      ended_at=expires_at WHERE ended_at IS NULL AND expires_at<=?`).bind(now,now),
     env.DB.prepare('DELETE FROM sessions WHERE expires_at<=?').bind(now),
     env.DB.prepare('DELETE FROM login_limits WHERE expires_at<=?').bind(now),
-    env.DB.prepare('INSERT INTO sessions(token_hash,account_id,role,expires_at) VALUES(?,?,?,?)').bind(tokenHash,account?.id||null,role,now+8*3600000)
+    env.DB.prepare('INSERT INTO sessions(token_hash,account_id,role,expires_at) VALUES(?,?,?,?)').bind(tokenHash,account?.id||null,role,expiresAt),
+    ...(role==='student'?[env.DB.prepare('INSERT INTO usage_sessions(token_hash,account_id,activity_id,started_at,last_seen_at,expires_at) VALUES(?,?,?,?,?,?)').bind(tokenHash,account.id,account.activity_id,now,now,expiresAt)]:[])
   ]);
   const s={role,account_id:account?.id,username:account?.username,name:account?.name,group_name:account?.group_name,activity_id:account?.activity_id};
   return json(await me(s,env),200,{'Set-Cookie':cookie(request,token,28800)});
@@ -130,7 +146,13 @@ async function adminApi(request,env,s,path){
   let m=path.match(/^\/api\/admin\/activities\/([^/]+)$/);
   if(m&&method==='PATCH'){const d=await bodyJson(request);if(typeof d.isOpen!=='boolean')fail(400,'INVALID_INPUT','請指定活動是否開放。');await activityById(env,m[1]);await env.DB.prepare('UPDATE activities SET is_open=? WHERE id=?').bind(d.isOpen?1:0,m[1]).run();return json({activity:toActivity(await activityById(env,m[1]))});}
   m=path.match(/^\/api\/admin\/activities\/([^/]+)\/accounts$/);
-  if(m){const a=await activityById(env,m[1]);if(method==='GET'){const rows=await env.DB.prepare(`SELECT a.id,a.username,a.name,a.group_name groupName,a.disabled,EXISTS(SELECT 1 FROM submissions s WHERE s.account_id=a.id) hasSubmission FROM accounts a WHERE activity_id=? ORDER BY username`).bind(a.id).all();return json({accounts:rows.results.map(x=>({...x,disabled:!!x.disabled,hasSubmission:!!x.hasSubmission}))});}
+  if(m){const a=await activityById(env,m[1]);if(method==='GET'){const now=Date.now(),rows=await env.DB.prepare(`SELECT a.id,a.username,a.name,a.group_name groupName,a.disabled,
+      EXISTS(SELECT 1 FROM submissions s WHERE s.account_id=a.id) hasSubmission,
+      COALESCE((SELECT SUM(u.duration_seconds+CASE WHEN u.ended_at IS NULL THEN MIN(120,MAX(0,CAST((MIN(?,u.expires_at)-u.last_seen_at)/1000 AS INTEGER))) ELSE 0 END) FROM usage_sessions u WHERE u.account_id=a.id),0) usageSeconds,
+      (SELECT COUNT(*) FROM usage_sessions u WHERE u.account_id=a.id) loginCount,
+      (SELECT MAX(started_at) FROM usage_sessions u WHERE u.account_id=a.id) lastLoginAt,
+      EXISTS(SELECT 1 FROM usage_sessions u WHERE u.account_id=a.id AND u.ended_at IS NULL AND u.expires_at>? AND u.last_seen_at>=?-120000) isUsing
+      FROM accounts a WHERE activity_id=? ORDER BY username`).bind(now,now,now,a.id).all();return json({accounts:rows.results.map(x=>({...x,disabled:!!x.disabled,hasSubmission:!!x.hasSubmission,isUsing:!!x.isUsing}))});}
     if(method==='POST'){const d=await bodyJson(request);if(!Number.isInteger(d.count)||d.count<1||d.count>100)fail(400,'INVALID_INPUT','每批帳號請設定 1–100 人。');
       const count=await env.DB.prepare('SELECT COUNT(*) n FROM accounts WHERE activity_id=?').bind(a.id).first();if(count.n+d.count>200)fail(409,'ACCOUNT_LIMIT','每場活動最多建立 200 個帳號。');
       const prefix=a.code.toLowerCase(),credentials=await Promise.all(Array.from({length:d.count},async()=>{const id=crypto.randomUUID(),username=prefix+'-'+randomToken().slice(0,8),password=randomToken().slice(0,24);return {id,username,password,digest:await hmac(env.AUTH_SECRET,password)};}));
@@ -140,9 +162,13 @@ async function adminApi(request,env,s,path){
   }
   m=path.match(/^\/api\/admin\/accounts\/([^/]+)(\/reset-password)?$/);
   if(m){const account=await env.DB.prepare('SELECT * FROM accounts WHERE id=?').bind(m[1]).first();if(!account)fail(404,'NOT_FOUND','找不到帳號。');
-    if(m[2]&&method==='POST'){await bodyJson(request);const password=randomToken().slice(0,24);await env.DB.batch([env.DB.prepare('UPDATE accounts SET password_hash=? WHERE id=?').bind(await hmac(env.AUTH_SECRET,password),account.id),env.DB.prepare('DELETE FROM sessions WHERE account_id=?').bind(account.id)]);return json({username:account.username,password});}
+    if(m[2]&&method==='POST'){await bodyJson(request);const password=randomToken().slice(0,24),now=Date.now();await env.DB.batch([
+      env.DB.prepare(`UPDATE usage_sessions SET duration_seconds=duration_seconds+CASE WHEN last_seen_at<=?-30000 THEN MIN(120,MAX(0,CAST((?-last_seen_at)/1000 AS INTEGER))) ELSE 0 END,last_seen_at=?,ended_at=? WHERE ended_at IS NULL AND token_hash IN (SELECT token_hash FROM sessions WHERE account_id=?)`).bind(now,now,now,now,account.id),
+      env.DB.prepare('UPDATE accounts SET password_hash=? WHERE id=?').bind(await hmac(env.AUTH_SECRET,password),account.id),env.DB.prepare('DELETE FROM sessions WHERE account_id=?').bind(account.id)]);return json({username:account.username,password});}
     if(!m[2]&&method==='PATCH'){const d=await bodyJson(request),name=d.name===undefined?account.name:text(d.name,'姓名',50),group=d.groupName===undefined?account.group_name:text(d.groupName,'組別',50);if(d.disabled!==undefined&&typeof d.disabled!=='boolean')fail(400,'INVALID_INPUT','帳號狀態不正確。');const disabled=d.disabled===undefined?account.disabled:Number(d.disabled);
-      await env.DB.batch([env.DB.prepare('UPDATE accounts SET name=?,group_name=?,disabled=? WHERE id=?').bind(name,group,disabled,account.id),env.DB.prepare('DELETE FROM sessions WHERE account_id=? AND ?=1').bind(account.id,disabled)]);return json({account:{id:account.id,username:account.username,name,groupName:group,disabled:!!disabled}});}
+      const now=Date.now();await env.DB.batch([
+        env.DB.prepare(`UPDATE usage_sessions SET duration_seconds=duration_seconds+CASE WHEN last_seen_at<=?-30000 THEN MIN(120,MAX(0,CAST((?-last_seen_at)/1000 AS INTEGER))) ELSE 0 END,last_seen_at=?,ended_at=? WHERE ended_at IS NULL AND token_hash IN (SELECT token_hash FROM sessions WHERE account_id=?) AND ?=1`).bind(now,now,now,now,account.id,disabled),
+        env.DB.prepare('UPDATE accounts SET name=?,group_name=?,disabled=? WHERE id=?').bind(name,group,disabled,account.id),env.DB.prepare('DELETE FROM sessions WHERE account_id=? AND ?=1').bind(account.id,disabled)]);return json({account:{id:account.id,username:account.username,name,groupName:group,disabled:!!disabled}});}
   }
   m=path.match(/^\/api\/admin\/activities\/([^/]+)\/submissions$/);
   if(m){const a=await activityById(env,m[1]);if(method==='GET'){const q=(new URL(request.url).searchParams.get('q')||'').trim().slice(0,80),rows=await env.DB.prepare(`SELECT s.id,a.username,a.name,a.group_name groupName,s.version,s.size,s.updated_at updatedAt FROM submissions s JOIN accounts a ON a.id=s.account_id WHERE s.activity_id=? AND (?='' OR instr(a.name,?)>0 OR instr(a.group_name,?)>0 OR instr(a.username,?)>0) ORDER BY s.updated_at DESC`).bind(a.id,q,q,q,q).all(),total=await env.DB.prepare('SELECT COUNT(*) n FROM submissions WHERE activity_id=?').bind(a.id).first();return json({submissions:rows.results.map(r=>({...r,imageUrl:`/api/admin/submissions/${r.id}/image`})),total:total.n});}
@@ -157,7 +183,8 @@ async function api(request,env){
   if(!['GET','HEAD'].includes(method))checkOrigin(request);
   if(path==='/api/login'&&method==='POST')return login(request,env);
   const s=await session(request,env);
-  if(path==='/api/logout'&&method==='POST'){await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(s.tokenHash).run();return json({ok:true},200,{'Set-Cookie':cookie(request)});}
+  if(path==='/api/usage/heartbeat'&&method==='POST'){await trackUsage(env,s,Date.now(),true);return json({ok:true,tracked:s.role==='student'});}
+  if(path==='/api/logout'&&method==='POST'){await closeUsage(env,s);await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(s.tokenHash).run();return json({ok:true},200,{'Set-Cookie':cookie(request)});}
   if(path==='/api/me'&&method==='GET')return json(await me(s,env));
   if(path.startsWith('/api/admin/'))return adminApi(request,env,s,path);
   if(path==='/api/profile'&&method==='POST'){student(s);const d=await bodyJson(request),name=text(d.name,'姓名',50),group=text(d.groupName,'組別',50),code=text(d.activityCode,'活動代碼',32).toUpperCase(),a=await activityById(env,s.activity_id);if(code!==a.code)fail(400,'ACTIVITY_CODE','活動代碼不正確，請向講師確認。');if((s.name&&s.name!==name)||(s.group_name&&s.group_name!==group))fail(403,'PROFILE_LOCKED','姓名與組別已確認，請由講師協助更正。');
@@ -175,7 +202,7 @@ export default {
       // teaching material, PDFs and versioned apps require an authenticated session.
       const publicPaths=new Set(['/v2/submit','/v2/submit.html','/v2/admin','/v2/admin.html',
         '/v2/assets/training.css','/v2/assets/training-common.js','/v2/assets/submission.js',
-        '/v2/assets/training-admin.js','/v2/assets/vendor/fflate.min.js',
+        '/v2/assets/training-admin.js','/v2/assets/session-tracking.js','/v2/assets/vendor/fflate.min.js',
         '/v2/assets/vendor/FFLATE-LICENSE.txt','/v2/assets/fonts/geist-latin.woff2',
         '/v2/assets/fonts/GEIST-LICENSE.txt','/THIRD_PARTY_NOTICES.md']);
       if(!publicPaths.has(path)){

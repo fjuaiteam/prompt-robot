@@ -4,9 +4,9 @@
 
 ## 11/18 教育訓練與圖片交件
 
-免費預設網址：<https://prompt-robot-training.ooo-training.workers.dev>。學員使用預發帳密登入，填姓名／組別／活動代碼後交一張圖片，可重交；講師由 `/v2/admin.html` 管理帳號、活動與下載 ZIP／CSV。教材與圖片皆有登入權限控制。
+免費預設網址：<https://prompt-robot-training.ooo-training.workers.dev>。學員使用預發帳密登入，填姓名／組別／活動代碼後交一張圖片，可重交；講師由 `/v2/admin.html` 管理帳號、活動、查看每人累計使用時長並下載時長／交件 CSV 或作品 ZIP。教材與圖片皆有登入權限控制。
 
-採 Cloudflare Workers＋D1，正式與預覽隔離，未啟用 R2 或圖片生成 API。實作、部署及課前演練見 [教育訓練部署說明](docs/training-deployment.md)；工作紀錄見 [training-log](docs/training-log.md)。管理密碼與學員帳密只保存在本機忽略的 `.deploy/` 交接檔，不在 Git。
+採 Cloudflare Workers＋D1，正式與預覽隔離，未啟用 R2 或圖片生成 API。圖片每張最多 1 MB，應用層全部活動合計最多 200 MB；登入工作階段會估算並記錄個別學員使用時長，講師可查詢及匯出。實作、部署及課前演練見 [教育訓練部署說明](docs/training-deployment.md)；工作紀錄見 [training-log](docs/training-log.md)。管理密碼與學員帳密只保存在本機忽略的 `.deploy/` 交接檔，不在 Git。
 
 ## 資料夾
 
