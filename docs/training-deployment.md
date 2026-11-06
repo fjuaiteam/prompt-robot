@@ -22,6 +22,8 @@
 
 接受原圖 JPEG／PNG／WebP，最多 20 MiB；在瀏覽器轉為長邊最多 2,048 px、最多 1,000,000 bytes JPEG，透明背景白底。應用層所有活動的圖片容量合計上限為 200,000,000 bytes（約 200 MB），由資料庫 trigger 原子檢查；每位學員每場活動限一張、單張最多 1 MB，50 位各交一張最多約 50 MB，重交會替換原圖、不累加容量。此應用層上限不是 Cloudflare 免費方案的 D1 總額度；免費方案額度由同帳號服務共用，超額時請保留圖片稍後重試，不能保證免費服務沒有中斷。
 
+圖片進出 D1 時以原生 Buffer 編碼配合 SQLite `hex`／`unhex` 傳遞，資料庫仍保存原始 BLOB，既有圖片不需 migration。避免直接綁定大型 ArrayBuffer：D1 會將其展開成數字陣列，曾在 50 人重交測試觸發免費 Worker CPU 超限。[D1 型別轉換](https://developers.cloudflare.com/d1/worker-api/#type-conversion)、[Worker CPU 上限](https://developers.cloudflare.com/workers/platform/limits/#cpu-time)。
+
 本機 `.deploy/` 內的 secrets、帳密、教學交接、測試報告與截圖，以及 `.dev.vars`、`.wrangler/`、`node_modules/` 都不進 Git。建置僅複製 Git 追蹤的 runtime 白名單及列明的新交件元件，排除本機媒體、使用者資料、tests、docs 和 secrets。
 
 ## 本機開發
@@ -67,6 +69,15 @@ node --test v2/tests/library.test.cjs
 瀏覽器驗收使用已安裝的 Playwright，設定 `PLAYWRIGHT_PACKAGE` 與需要時的 `PLAYWRIGHT_EXECUTABLE_PATH`，執行 `node v2/tests/training-browser.mjs`。可用 `TRAINING_TEST_URL` 與 `TRAINING_TEST_SECRETS` 指向指定 preview。測試僅允許 localhost／獨立 preview，以免污染正式學員資料。
 
 `scripts/verify-training-service.mjs --url URL --secrets 忽略的JSON檔` 只允許 localhost 或獨立 preview；建立自己的合成活動，50 人同時登入、上傳每張 950 KB、重交，核對 50 張圖片 SHA-256 與權限；結束清除合成圖片並停用測試帳號。不接受正式網址。
+
+較長的穩定性驗證使用以下命令，僅允許獨立 preview：
+
+```powershell
+node scripts/verify-training-stability.mjs --accounts 40 --rounds 3 --duration 120
+node scripts/verify-training-stability.mjs --accounts 50 --rounds 5 --duration 600
+```
+
+每人每輪使用不同的 1 MB JPEG，並行登入、讀教材、交件、查看自己的圖片與重送相同請求；期間每分鐘回報時長、每 15 秒查詢講師列表。最後登出、核對時長、重新登入驗證最新圖片，再逐張核對講師匯出。原始 HTTP 錯誤會令測試失敗，不會以自動重試掩蓋；所有並行請求結束後才清除本輪合成圖片並停用帳號。每次結果以時間戳另存 `.deploy/stability-*.json`，包含階段耗時、HTTP 狀態及檢查結果；不要只看先前成功報告判定最新測試通過。
 
 可加 `--keep-for-export`，把關閉的合成活動留給瀏覽器測試；再設定 `TRAINING_VERIFY_LARGE_EXPORT=1` 執行瀏覽器驗收，核對 50 張 ZIP／CSV、圖片雜湊，以及相同長姓名的檔名唯一性，結束清空該批圖片。`node scripts/cleanup-preview-tests.mjs` 只會清理這套測試產生的指定名稱／代碼活動，保持正式環境不變。
 
