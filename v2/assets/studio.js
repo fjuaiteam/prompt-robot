@@ -12,6 +12,7 @@ function studioHome(){
   $('#view-home').innerHTML=`<div class="v2-home studio-home">
     <p class="v2-eyebrow">教材工作台</p><h1 tabindex="-1">今天，接著完成你的教材。</h1>
     <p class="v2-lead">本站準備腳本與指令；在外部 AI 完成素材，再用文件或影片工具排版交付。</p>
+    <p class="studio-training-entry"><a class="btn" href="submit.html">登入／圖片交件</a> <a class="btn ghost" href="admin.html">講師收件管理</a></p>
     ${active?`<section class="studio-continue" aria-labelledby="studio-continue-title"><div class="v2-section-title"><h2 id="studio-continue-title">繼續上次的作品</h2><span>上次儲存：${v2HumanDate(active.updated)}</span></div><div class="studio-resume">${studioThumb(active)}<div><h2>${esc(active.name)}</h2><p>${studioProjectMeta(active)}</p></div><button class="btn" data-v2="open-project" data-id="${esc(active.id)}">繼續製作${I.right}</button></div></section>`:
     '<section class="studio-welcome"><h2>從第一份教材開始</h2><p>先選讀物或影片，設定對象，再一步步規劃內容。</p></section>'}
     <section aria-labelledby="studio-new-title"><div class="v2-section-title"><h2 id="studio-new-title">開始新作品</h2><div class="studio-shortcuts"><button class="btn ghost" data-v2="easy">${hubIco('gen')}畫一張圖片</button><button class="btn ghost" data-v="read">${READ_ICON}文件轉易讀</button></div></div><div class="v2-tasks">
@@ -37,7 +38,7 @@ workspaceNav=function(){
   return `<div class="ws-nav-top"><button class="ws-brand" data-v="home" aria-label="提示詞機器人首頁">${LU.globe}<span>提示詞機器人</span></button><button class="ws-drawer-close" data-ws-close aria-label="關閉主導覽">${I.close}</button></div>
     <nav class="ws-nav" aria-label="主導覽">${cards?`${link('home','回工作台',I.left)}<div class="studio-engineer-title"><b>工程模式</b><span>圖卡管理</span></div><div class="ws-group studio-categories"><p>題目分類</p>${categories}</div>`:
     `<div class="ws-group"><p>工作台</p>${link('home','我的作品',LU.book)}${link('activities','活動與人物卡',LU.cap)}${link('learn','學習中心',LU.book)}</div><div class="ws-group"><p>管理</p>${link('cards','工程模式',hubIco('fix'),'圖卡管理')}</div>`}</nav>
-    <div class="ws-nav-bottom">${cards?'<button class="ws-link" data-studio="backups">'+I.down+'<span>備份與還原</span></button>':'<button class="ws-link" data-mode="easy">'+LU.cap+'<span>前往易學版</span></button>'}<p class="studio-local-nav">僅保存在此瀏覽器</p></div>`;
+    <div class="ws-nav-bottom">${cards?'<button class="ws-link" data-studio="backups">'+I.down+'<span>備份與還原</span></button>':'<button class="ws-link" data-mode="easy">'+LU.cap+'<span>前往易學版</span></button>'}<a class="ws-link" href="submit.html">${I.up}<span>登入／圖片交件</span></a><p class="studio-local-nav">教材草稿僅保存在此瀏覽器</p></div>`;
 };
 const studioOldSync=syncWorkspace;
 syncWorkspace=function(){
@@ -67,7 +68,7 @@ eShell=function(id,title){
   if(!$('.studio-easy-brand',header)){
     header.insertAdjacentHTML('afterbegin',`<span class="studio-easy-brand">${LU.globe}<b>提示詞機器人</b><span>易學版</span></span>`);
     $('.e-brand',header)?.remove();$('.e-title',header)?.remove();
-    $('.e-tools',header).insertAdjacentHTML('beforeend','<button class="e-quiet" data-mode="pro">工作人員入口</button>');
+    $('.e-tools',header).insertAdjacentHTML('beforeend','<a class="e-quiet" href="submit.html">登入／交件</a><button class="e-quiet" data-mode="pro">工作人員入口</button>');
   }
   return host;
 };

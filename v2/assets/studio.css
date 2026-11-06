@@ -101,3 +101,6 @@ body[data-view=cards] .main{padding:28px 24px 40px;}.studio-library{display:grid
   .mode-easy .e-page .e-homebtn{grid-column:2;grid-row:1;margin:0;font-size:14px;min-height:44px;}
   .mode-easy .e-page .e-tools{grid-column:1/-1;grid-row:2;display:flex;justify-content:flex-end;gap:12px;margin:0;}
 }
+/* 雲端交件入口沿用既有控制項，與本機教材草稿分開顯示。 */
+.studio-training-entry{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 24px;}
+.studio-training-entry a,.ws-nav-bottom a.ws-link,.e-tools a.e-quiet{text-decoration:none;}

@@ -7,6 +7,15 @@
 !/CONTRIBUTING.md
 !/THIRD_PARTY_NOTICES.md
 !/index.html
+!/package.json
+!/package-lock.json
+!/wrangler.jsonc
+!/cloudflare/
+!/scripts/
+!/docs/
+/docs/*
+!/docs/training-deployment.md
+!/docs/training-log.md
 !/.github/
 /.github/*
 !/.github/PULL_REQUEST_TEMPLATE.md
@@ -25,6 +34,7 @@
 /v2/tests/*
 !/v2/tests/*.cjs
 !/v2/tests/*.js
+!/v2/tests/*.mjs
 !/v[12]/assets/
 /v[12]/assets/*
 !/v[12]/assets/*.js
@@ -34,6 +44,8 @@
 /v[12]/assets/vendor/*
 !/v[12]/assets/vendor/three.min.js
 !/v[12]/assets/vendor/THREE-LICENSE.txt
+!/v2/assets/vendor/fflate.min.js
+!/v2/assets/vendor/FFLATE-LICENSE.txt
 !/v[12]/assets/fonts/
 /v[12]/assets/fonts/*
 !/v[12]/assets/fonts/*.css
@@ -67,6 +79,11 @@
 !/v2/assets/illustrations/hero-adult-tail.png
 !/v2/assets/illustrations/hero-older-glasses.png
 **/.env
+**/.dev.vars
+**/.dev.vars.*
+node_modules/
+.wrangler/
+.deploy/
 **/.env.*
 **/*.pem
 **/*.key
